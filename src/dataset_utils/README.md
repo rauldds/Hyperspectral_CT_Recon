@@ -51,3 +51,7 @@ MUSIC2D_HDF5
 NOTE: The difference between the Full Spectrum and the Reduced Spectrum is the number of energy levels used. In the reduced spectrum data, the reconstructions are done for only 10 energy levels. Moreover, the segmentation is only done based on the data from 10 energy levels.
 
 ### How to visualize
+To visualize the data from the dataset simply run:
+```
+python MUSIC_2D_Visualization.py -d <PATH/TO/MUSIC2D_HDF5>
+```
