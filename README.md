@@ -12,9 +12,9 @@ Additionally (if you haven't already), it might also be useful to check the [Pro
 ## TO DOs
 Ideally we have the issues and just update them accordingly to know whose doing what and in which state we currently are.
 Nevertheless here are some important deadlines:
-- mid-presentation: 06.07.2023. For this date we are supposed to have a baseline script/model as well as the presentation.
-- final presentation: 21.09.2023
-- Adapt a method, like Deepsdf, to do Hyperspectral Segmentation and 3D reconstruction
+- [ ] mid-presentation: 06.07.2023. For this date we are supposed to have a baseline script/model as well as the presentation.
+- [ ] final presentation: 21.09.2023
+- [ ] Adapt a method, like Deepsdf, to do Hyperspectral Segmentation and 3D reconstruction
 
 ## BASELINE PROPOSAL:
 1. Approach 1:
