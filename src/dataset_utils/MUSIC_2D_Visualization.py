@@ -12,9 +12,12 @@ argParser.add_argument("-d", "--dataset", help="dataset path", type=str)
 
 args = argParser.parse_args()
 print("DATASET PATH: %s" % args.dataset)
-
 # Path to the dataset
 DATASET_PATH = args.dataset
+
+if str(DATASET_PATH) == "None":
+    print("PLEASE PROVIDE THE DATASET PATH")
+    exit()
 
 # Print all classes to console
 def get_classes(file_path=None):
