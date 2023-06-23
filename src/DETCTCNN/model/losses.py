@@ -1,4 +1,6 @@
+from functools import partial
 import torch
+import torch.nn as nn
 def dice_coefficient(y_true, y_pred, smooth=1., weight=None):
     """
     Dice = (2*|X & Y|)/ (|X|+ |Y|)
@@ -57,11 +59,8 @@ def generate_seg(prediction):  # tensor (N, D, H, W, C) , channel_last
 
 
 def weighted_loss(y_true, y_pred, weight, n_labels):
-    # if isinstance(y_pred, list):
-    #     y_pred = y_pred[0]
     loss = 0
     for index in range(n_labels):
-        #loss += weighted_cross_entropy(y_true[:, :, :, :, index], y_pred[:, :, :, :, index], weight[:, :, :, :])
         loss += -1 * dice_coefficient(y_true[:, :, :, :, index], y_pred[:, :, :, :, index], weight=weight)#**1.01
     return loss
 
@@ -78,3 +77,28 @@ def get_median(v):
     v=torch.reshape(v,[-1])
     m = v.get_shape()[-1]//2  #channel last
     return torch.nn.top_k(v, m).values[m-1]
+
+def get_label_dice_coefficient_function(label_index):
+    f = partial(label_wise_dice_coefficient, label_index=label_index)
+    f.__setattr__('__name__', 'label_{0}_dice_coef'.format(label_index))
+    return f
+
+
+def get_dice_loss_function(n_labels):
+    f = partial(dice_coefficient_loss, n_labels=n_labels)
+    f.__setattr__('__name__', 'dice_loss')
+    return f
+
+def get_weighted_loss_function(weight, n_labels):
+    f = partial(weighted_loss, weight=weight, n_labels=n_labels)
+    f.__setattr__('__name__', 'weighted_loss')
+    return f
+
+class WeightedLoss(nn.Module):
+    def __init__(self):
+            super(WeightedLoss, self).__init__()
+
+    def forward(self, output, target, weight=None, n_labels=7):
+            loss = weighted_loss(output,target,weight, n_labels)
+            return loss 
+
