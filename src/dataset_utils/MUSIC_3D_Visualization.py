@@ -35,7 +35,7 @@ while True:
     print("Selected sample: %s " % file)
     break
 
-'''with h5py.File(DATASET_PATH+ "/"+file+'/manualSegmentation/manualSegmentation.h5', 'r') as f:
+with h5py.File(DATASET_PATH+ "/"+file+'/manualSegmentation/manualSegmentation.h5', 'r') as f:
     data = np.array(f['data']['value'], order='F').transpose()
 print(data.shape)
 
@@ -78,7 +78,7 @@ o3d.visualization.draw_geometries([pcl],
                                   up=[0.2304, -0.8825, 0.4101],
                                   window_name="Manual Segmentation 3D Visualization")
 
-'''
+
 with h5py.File(DATASET_PATH + "/" + file
                 + '/fullSpectrum/reconstruction/reconstruction.h5', 'r') as f:
     data = np.array(f['data']['value'], order='F')
@@ -116,5 +116,3 @@ slider_step = Slider(ax_step, 'Step No.', 0, 36, valinit=0, valfmt='%d')
 slider_step.on_changed(update_step)
 
 plt.show()
-
-print(f'idx val: {idx}')
