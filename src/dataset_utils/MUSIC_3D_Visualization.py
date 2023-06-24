@@ -8,6 +8,52 @@ import open3d as o3d
 from collections import Counter
 import os
 
+idx = 0
+step = 0
+
+def pointcloud_converter(data):
+    '''Function to convert the segmented slices into a point cloud for 3D visualization'''
+    points = []
+    classes = []
+    for x in range(data.shape[0]):
+        for y in range(data.shape[1]):
+            for z in range(data.shape[2]):
+                if data[x,y,z]!=0:
+                    point = [[x],[y],[z]]
+                    points.append(point)
+                    classes.append(data[x,y,z])
+    points = (np.asarray(points)).squeeze(2)
+    return points, classes
+
+def pointcloud_colorizer(classes, num_classes):
+    "Function to assign a random color to the different classes that appear in the cloud"
+    colors = []
+    point_colors = []
+    for i in range (num_classes):
+        color = list(np.random.choice(range(256), size=3))
+        colors.append(color)
+    colors =(np.asarray(colors))/255
+
+    for idx in classes:
+        point_colors.append(colors[int(idx)-1])
+    point_colors=np.asarray(point_colors)
+
+    return point_colors
+
+def update_energy_level(val):
+    global idx, step
+    idx = int(slider_energy.val)
+    ax.cla()
+    ax.imshow(data[idx][step,:,:])
+    fig.canvas.draw_idle()
+
+def update_step(val):
+    global idx, step
+    step = int(slider_step.val)
+    ax.cla()
+    ax.imshow(data[idx][step,:,:])
+    fig.canvas.draw_idle()
+
 argParser = argparse.ArgumentParser()
 argParser.add_argument("-d", "--dataset", help="dataset path", type=str)
 
@@ -19,6 +65,8 @@ DATASET_PATH = args.dataset
 if str(DATASET_PATH) == "None":
     print("PLEASE PROVIDE THE DATASET PATH")
     exit()
+
+# BEGIN: SAMPLE SELECTION
 file_names=os.listdir(DATASET_PATH)
 file_names.remove("README.md")
 count = -1
@@ -35,34 +83,17 @@ while True:
     print("Selected sample: %s " % file)
     break
 
+# END: SAMPLE SELECTION
+
+# 3D Visualization Manual Segmentation
 with h5py.File(DATASET_PATH+ "/"+file+'/manualSegmentation/manualSegmentation.h5', 'r') as f:
     data = np.array(f['data']['value'], order='F').transpose()
-print(data.shape)
-
-points = []
-classes = []
-for x in range(data.shape[0]):
-    for y in range(data.shape[1]):
-        for z in range(data.shape[2]):
-            if data[x,y,z]!=0:
-                point = [[x],[y],[z]]
-                points.append(point)
-                classes.append(data[x,y,z])
-points = (np.asarray(points)).squeeze(2)
+    
+points, classes = pointcloud_converter(data)
 
 num_classes = len(Counter(classes).keys())
-#print(Counter(classes).keys())
 
-colors = []
-for i in range (num_classes):
-    color = list(np.random.choice(range(256), size=3))
-    colors.append(color)
-colors =(np.asarray(colors))/255
-point_colors = []
-
-for idx in classes:
-    point_colors.append(colors[int(idx)-1])
-point_colors=np.asarray(point_colors)
+point_colors = pointcloud_colorizer(classes,num_classes)
 
 #Conversion of point cloud to o3d format
 pcl = o3d.geometry.PointCloud()
@@ -79,33 +110,16 @@ o3d.visualization.draw_geometries([pcl],
                                   window_name="Manual Segmentation 3D Visualization")
 
 
+#Visualization of Slices
 with h5py.File(DATASET_PATH + "/" + file
                 + '/fullSpectrum/reconstruction/reconstruction.h5', 'r') as f:
     data = np.array(f['data']['value'], order='F')
-    print(data.shape)
 
-
-print(f'sinogram shape: {data.shape}')
 
 fig, ax = plt.subplots()
 plt.title("Slices")
 plt.subplots_adjust(bottom=0.15)
 ax.imshow(data[0][0,:,:])
-idx = 0
-step = 0
-def update_energy_level(val):
-    global idx, step
-    idx = int(slider_energy.val)
-    ax.cla()
-    ax.imshow(data[idx][step,:,:])
-    fig.canvas.draw_idle()
-
-def update_step(val):
-    global idx, step
-    step = int(slider_step.val)
-    ax.cla()
-    ax.imshow(data[idx][step,:,:])
-    fig.canvas.draw_idle()
 
 ax_energy = plt.axes([0.25, 0.05, 0.5, 0.03])
 slider_energy = Slider(ax_energy, 'Sinogram No.', 0, 127, valinit=0, valfmt='%d')
