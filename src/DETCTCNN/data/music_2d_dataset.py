@@ -26,8 +26,8 @@ class MUSIC2DDataset(Dataset):
         super().__init__(*args, root=root,
                             **kwargs)
         self.images = []
-        self.sinograms = []
         self.classes = []
+        self.segmentations = []
         # If we need any transformations
         self.transform = None
         for path in os.listdir(self.root_path):
@@ -37,23 +37,22 @@ class MUSIC2DDataset(Dataset):
             if "README" in path:
                 continue
             data_path = os.path.join(self.root_path, path, "fullSpectrum", "reconstruction")
-            # sinogram_path = os.path.join(self.root_path, path, "fullSpectrum", "projections", "sinogram.h5")
+            segmentation_file = h5py.File(os.path.join(self.root_path, path, "manualSegmentation", "manualSegmentation.h5"))
             # Open reconstructions
             reconstruction_file = None
             if os.path.isfile(os.path.join(data_path, "reconstruction.h5")):
                 reconstruction_file = h5py.File(os.path.join(data_path, "reconstruction.h5"),"r")
             if os.path.isfile(os.path.join(data_path, "recontruction.h5")):
                 reconstruction_file = h5py.File(os.path.join(data_path, "recontruction.h5"),"r")
-            # sinogram_file = h5py.File(sinogram_path,"r") 
             #Collect image list
             with reconstruction_file as f:
                 data = np.array(f['data']['value'], order='F').transpose()
                 self.images.append(data)
                 reconstruction_file.close()
-            # with sinogram_file as f:
-            #     data = np.array(f['data']['value'], order='F').transpose()
-            #     self.sinograms.append(data)
-            #     sinogram_file.close()
+            with segmentation_file as f:
+                data = np.array(f['data']['value'], order='F').transpose()
+                self.segmentations.append(data)
+                segmentation_file.close()
             
     
     def __len__(self):
@@ -65,12 +64,16 @@ class MUSIC2DDataset(Dataset):
             image = self.transform(image)
         return image
 
+    def _get_segmentation(self,index):
+        segmentation = self.segmentations[index]
+        return segmentation
     
     def __getitem__(self, index):
-        image = self.images[index]
+        image = self._get_image(index=index)
+        segmentation = self._get_segmentation(index=index) 
         if self.transform is not None:
             image = self.transform(image)
-        return image
+        return {"image": image, "segmentation": segmentation}
     
     def plot_item(self,index, rad_val):
         image = self.images[index].squeeze()[:,:,rad_val]
@@ -78,8 +81,11 @@ class MUSIC2DDataset(Dataset):
         plt.imshow(image.squeeze(), cmap=plt.cm.Greys_r)
         plt.show()
 
+    def get_classes(self):
+        return self.classes
+
 if __name__ == "__main__":
     path = "/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon/MUSIC2D_HDF5"
     dataset = MUSIC2DDataset(root=path)
-    dataset.plot_item(30, 30)
+    print(dataset[0])
     
