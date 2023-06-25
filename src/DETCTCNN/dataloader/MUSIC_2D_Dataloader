@@ -1,0 +1,24 @@
+"""Dataset Base Class"""
+
+from abc import ABC, abstractmethod
+
+
+class Dataset(ABC):
+    def __init__(self, root):
+        self.root_path = root
+
+    @abstractmethod
+    def __getitem__(self, index):
+        """Return data sample at given index"""
+
+    @abstractmethod
+    def __len__(self):
+        """Return size of the dataset"""
+
+class MUSIC2DDataset(Dataset):
+    def __init__(self, *args, root=None, **kwargs):
+        super().__init__(*args,
+                            **kwargs)
+        with open(self.root_path) as f:
+            # self.model_info = json.load(f)
+

@@ -4,8 +4,8 @@ from matplotlib import pyplot as plt
 import h5py
 
 
-sinogram_path="../MUSIC2D_HDF5/acetone/fullSpectrum/projections/sinogram.h5"
-image_path="../MUSIC2D_HDF5/acetone/fullSpectrum/reconstruction/reconstruction.h5"
+sinogram_path="../MUSIC2D_HDF5/sample10/fullSpectrum/projections/sinogram.h5"
+image_path="../MUSIC2D_HDF5/sample10/fullSpectrum/reconstruction/reconstruction.h5"
 
 rad_val = 60
 
