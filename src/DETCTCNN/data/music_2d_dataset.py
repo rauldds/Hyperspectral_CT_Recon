@@ -58,6 +58,13 @@ class MUSIC2DDataset(Dataset):
     
     def __len__(self):
         return len(self.images) 
+
+    def _get_image(self,index):
+        image = self.images[index]
+        if self.transform is not None:
+            image = self.transform(image)
+        return image
+
     
     def __getitem__(self, index):
         image = self.images[index]
