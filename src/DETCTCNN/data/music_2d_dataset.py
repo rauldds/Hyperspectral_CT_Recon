@@ -60,6 +60,8 @@ class MUSIC2DDataset(Dataset):
 
     def _get_image(self,index):
         image = self.images[index]
+        # TODO: What order of dimensions
+        image = image.transpose((3,2,0,1))
         if self.transform is not None:
             image = self.transform(image)
         return image
@@ -87,5 +89,5 @@ class MUSIC2DDataset(Dataset):
 if __name__ == "__main__":
     path = "/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon/MUSIC2D_HDF5"
     dataset = MUSIC2DDataset(root=path)
-    print(dataset[0])
+    print(dataset[0]["image"].shape)
     
