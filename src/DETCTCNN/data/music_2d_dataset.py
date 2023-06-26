@@ -1,15 +1,20 @@
 """Dataset Base Class"""
 
 from abc import ABC, abstractmethod
+from email.mime import image
 import os
 import h5py
 from matplotlib import pyplot as plt
 import numpy as np
+import argparse
+from music_2d_labels import MUSIC_2D_LABELS
 
 
 class Dataset(ABC):
-    def __init__(self, root):
+    def __init__(self, root, partition,spectrum):
         self.root_path = root
+        self.partition = partition
+        self.spectrum = spectrum
 
     @abstractmethod
     def __getitem__(self, index):
@@ -22,37 +27,18 @@ class Dataset(ABC):
 # Data shape is (100,100,1,128). This is 2D data with 128 channels!
 # TODO: Do we want to retrieve sinograms?
 class MUSIC2DDataset(Dataset):
-    def __init__(self, *args, root=None, **kwargs):
-        super().__init__(*args, root=root,
+    def __init__(self, *args, root=None, partition="train",spectrum="fullSpectrum",**kwargs):
+        super().__init__(*args, root=root, partition=partition, spectrum=spectrum,
                             **kwargs)
         self.images = []
         self.classes = []
         self.segmentations = []
         # If we need any transformations
         self.transform = None
-        for path in os.listdir(self.root_path):
-            #Collect all the class names
-            if "sample" not in path:
-                self.classes.append(path)
-            if "README" in path:
-                continue
-            data_path = os.path.join(self.root_path, path, "fullSpectrum", "reconstruction")
-            segmentation_file = h5py.File(os.path.join(self.root_path, path, "manualSegmentation", "manualSegmentation.h5"))
-            # Open reconstructions
-            reconstruction_file = None
-            if os.path.isfile(os.path.join(data_path, "reconstruction.h5")):
-                reconstruction_file = h5py.File(os.path.join(data_path, "reconstruction.h5"),"r")
-            if os.path.isfile(os.path.join(data_path, "recontruction.h5")):
-                reconstruction_file = h5py.File(os.path.join(data_path, "recontruction.h5"),"r")
-            #Collect image list
-            with reconstruction_file as f:
-                data = np.array(f['data']['value'], order='F').transpose()
-                self.images.append(data)
-                reconstruction_file.close()
-            with segmentation_file as f:
-                data = np.array(f['data']['value'], order='F').transpose()
-                self.segmentations.append(data)
-                segmentation_file.close()
+        #Collect all the class names
+        for label in MUSIC_2D_LABELS:
+            self.classes.append(label)
+        self._load_data()
             
     
     def __len__(self):
@@ -60,8 +46,6 @@ class MUSIC2DDataset(Dataset):
 
     def _get_image(self,index):
         image = self.images[index]
-        # TODO: What order of dimensions
-        image = image.transpose((3,2,0,1))
         if self.transform is not None:
             image = self.transform(image)
         return image
@@ -86,8 +70,43 @@ class MUSIC2DDataset(Dataset):
     def get_classes(self):
         return self.classes
 
+    def _load_data(self):
+        for path in os.listdir(self.root_path):
+            if self.partition =="train" and (path == "sample20" or 
+                                             path == "sample19" or
+                                             path == "README.md"):
+                continue
+            elif self.partition == "valid" and (path != "sample19"):
+                continue
+            elif self.partition == "test" and (path != "sample20"):
+                continue
+            #TODO: Probably good to start with reduced spectrum instead of fullspectrum
+            data_path = os.path.join(self.root_path, path, self.spectrum, "reconstruction")
+            segmentation_file = h5py.File(os.path.join(self.root_path, path, "manualSegmentation", "manualSegmentation_global.h5"))
+            # Open reconstructions
+            reconstruction_file = None
+            if os.path.isfile(os.path.join(data_path, "reconstruction.h5")):
+                reconstruction_file = h5py.File(os.path.join(data_path, "reconstruction.h5"),"r")
+            if os.path.isfile(os.path.join(data_path, "recontruction.h5")):
+                reconstruction_file = h5py.File(os.path.join(data_path, "recontruction.h5"),"r")
+            #Collect image list
+            with reconstruction_file as f:
+                data = np.array(f['data']['value'], order='F')
+                if self.spectrum=="fullSpectrum":
+                    data = data.squeeze(1)
+                self.images.append(data)
+                reconstruction_file.close()
+            with segmentation_file as f:
+                data = np.array(f['data']['value'], order='F')
+                self.segmentations.append(data.astype(int))
+                segmentation_file.close()
+
 if __name__ == "__main__":
-    path = "/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon/MUSIC2D_HDF5"
-    dataset = MUSIC2DDataset(root=path)
-    print(dataset[0]["image"].shape)
-    
+    #path = "/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon/MUSIC2D_HDF5"
+    argParser = argparse.ArgumentParser()
+    argParser.add_argument("-d", "--dataset", help="dataset path", type=str)
+    args = argParser.parse_args()
+    DATASET_PATH = args.dataset
+    dataset = MUSIC2DDataset(root=DATASET_PATH,spectrum="reducedSpectrum",partition="train")
+    #print(len(dataset.get_classes()))
+    #print(len(dataset[:]["segmentation"]))

@@ -2,14 +2,14 @@ from argparse import ArgumentParser
 from losses import WeightedLoss
 from model import get_model
 import torch
-import MUSIC2D_HDF5
+from ..data.music_2d_dataset import MUSIC2DDataset
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 #TODO: Update training with dataloader
 def main(hparams):
     model = get_model(n_labels=hparams.n_labels)
-    dataset = MUSIC2D_HDF5(hparams.data_root)
+    dataset = MUSIC2DDataset(root=hparams.data_root,partition="train",spectrum="reducedSpectrum")
     train_loader = torch.utils.data.DataLoader(dataset, batch_size=hparams['batch_size'])
     optimizer = torch.optim.Adam(model.parameters(), betas=([0.9, 0.999]), lr = hparams.lr)
     criterion = WeightedLoss()
