@@ -15,11 +15,12 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def main(hparams):
     model = get_model(n_labels=hparams.n_labels)
     #Initialize Transformations
-    transform = transforms.Compose([
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomRotation(),
-        transforms.ToTensor()
-    ])
+    # transform = transforms.Compose([
+    #     transforms.RandomHorizontalFlip(),
+    #     transforms.RandomRotation(),
+    #     transforms.ToTensor()
+    # ])
+    transform = None
     dataset = MUSIC2DDataset(root=hparams.data_root,partition="train",spectrum="reducedSpectrum", transform=transform)
     train_loader = DataLoader(dataset, batch_size=hparams['batch_size'])
     optimizer = torch.optim.Adam(model.parameters(), betas=([0.9, 0.999]), lr = hparams.lr)
