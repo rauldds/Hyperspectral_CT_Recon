@@ -4,6 +4,7 @@ from model import get_model
 import torch
 
 import music_2d_labels
+from src.DETCTCNN.augmentations.augmentations import AddGaussianNoise
 from ..data.music_2d_dataset import MUSIC2DDataset
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -15,11 +16,15 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def main(hparams):
     model = get_model(n_labels=hparams.n_labels)
     #Initialize Transformations
-    # transform = transforms.Compose([
-    #     transforms.RandomHorizontalFlip(),
-    #     transforms.RandomRotation(),
-    #     transforms.ToTensor()
-    # ])
+    transform = transforms.Compose([
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomVerticalFlip(),
+        transforms.RandomAffine(),
+        transforms.RandomRotation(),
+        transforms.RandomResizedCrop(),
+        AddGaussianNoise(),
+        transforms.ToTensor()
+    ])
     transform = None
     dataset = MUSIC2DDataset(root=hparams.data_root,partition="train",spectrum="reducedSpectrum", transform=transform)
     train_loader = DataLoader(dataset, batch_size=hparams['batch_size'])
