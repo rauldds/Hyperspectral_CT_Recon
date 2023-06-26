@@ -16,224 +16,164 @@ MUSIC_2D_LABELS = {
 }
 
 MUSIC_2D_SAMPLES = {
-    {
-        "name": "sample1",
-        "materials": {
+    "sample1": {
             0: MUSIC_2D_LABELS["unlabelled"],
             1: MUSIC_2D_LABELS["olive_oil"],
             2: MUSIC_2D_LABELS["brandy_chantre"],
             3: MUSIC_2D_LABELS["hand_cream"],
             4: MUSIC_2D_LABELS["whiskey"],
             5: MUSIC_2D_LABELS["aluminium"],
-     }
     },
-    {
-        "name": "sample2",
-        "materials": {
+    "sample2": {
             0: MUSIC_2D_LABELS["unlabelled"],
             1: MUSIC_2D_LABELS["nivea_lotion"],
             2: MUSIC_2D_LABELS["brandy_chantre"],
             3: MUSIC_2D_LABELS["methanol"],
             4: MUSIC_2D_LABELS["h2o2"],
             5: MUSIC_2D_LABELS["aluminium"],
-     }
     },
-    {
-        "name": "sample3",
-        "materials": {
+    "sample3": {
             0: MUSIC_2D_LABELS["unlabelled"],
             1: MUSIC_2D_LABELS["garnier_fructis"],
             2: MUSIC_2D_LABELS["whiskey"],
             3: MUSIC_2D_LABELS["nitromethane"],
             4: MUSIC_2D_LABELS["brandy_chantre"],
             5: MUSIC_2D_LABELS["aluminium"],
-     }
     },
-    {
-        "name": "sample4",
-        "materials": {
+    "sample4": {
             0: MUSIC_2D_LABELS["unlabelled"],
             1: MUSIC_2D_LABELS["h2o"],
             2: MUSIC_2D_LABELS["h2o2"],
             3: MUSIC_2D_LABELS["garnier_fructis"],
             4: MUSIC_2D_LABELS["nivea_lotion"],
             5: MUSIC_2D_LABELS["aluminium"],
-     }
     },
-    {
-        "name": "sample5",
-        "materials": {
+    "sample5": {
             0: MUSIC_2D_LABELS["unlabelled"],
             1: MUSIC_2D_LABELS["hand_cream"],
             2: MUSIC_2D_LABELS["nitromethane"],
             3: MUSIC_2D_LABELS["whiskey"],
             4: MUSIC_2D_LABELS["h2o"],
             5: MUSIC_2D_LABELS["aluminium"],
-     }
     },
-    {
-        "name": "sample6",
-        "materials": {
+    "sample6": {
             0: MUSIC_2D_LABELS["unlabelled"],
             1: MUSIC_2D_LABELS["h2o"],
             2: MUSIC_2D_LABELS["brandy_chantre"],
             3: MUSIC_2D_LABELS["olive_oil"],
             4: MUSIC_2D_LABELS["whiskey"],
             5: MUSIC_2D_LABELS["aluminium"],
-     }
     },
-    {
-        "name": "sample7",
-        "materials": {
+    "sample7": {
             0: MUSIC_2D_LABELS["unlabelled"],
             1: MUSIC_2D_LABELS["brandy_chantre"],
             2: MUSIC_2D_LABELS["garnier_fructis"],
             3: MUSIC_2D_LABELS["h2o2"],
             4: MUSIC_2D_LABELS["nivea_lotion"],
             5: MUSIC_2D_LABELS["aluminium"],
-     }
     },
-    {
-        "name": "sample8",
-        "materials": {
+    "sample8": {
             0: MUSIC_2D_LABELS["unlabelled"],
             1: MUSIC_2D_LABELS["h2o2"],
             2: MUSIC_2D_LABELS["methanol"],
             3: MUSIC_2D_LABELS["garnier_fructis"],
             4: MUSIC_2D_LABELS["olive_oil"],
             5: MUSIC_2D_LABELS["aluminium"],
-     }
     },
-    {
-        "name": "sample9",
-        "materials": {
+    "sample9": {
             0: MUSIC_2D_LABELS["unlabelled"],
             1: MUSIC_2D_LABELS["methanol"],
             2: MUSIC_2D_LABELS["hand_cream"],
             3: MUSIC_2D_LABELS["acetone"],
             4: MUSIC_2D_LABELS["nivea_lotion"],
             5: MUSIC_2D_LABELS["aluminium"],
-     }
     },
-    {
-        "name": "sample10",
-        "materials": {
+    "sample10": {
             0: MUSIC_2D_LABELS["unlabelled"],
             1: MUSIC_2D_LABELS["acetone"],
             2: MUSIC_2D_LABELS["h2o"],
             3: MUSIC_2D_LABELS["garnier_fructis"],
             4: MUSIC_2D_LABELS["whiskey"],
             5: MUSIC_2D_LABELS["aluminium"],
-     }
     },
-    {
-        "name": "sample11",
-        "materials": {
+    "sample11": {
             0: MUSIC_2D_LABELS["unlabelled"],
             1: MUSIC_2D_LABELS["acetone"],
             2: MUSIC_2D_LABELS["h2o"],
             3: MUSIC_2D_LABELS["garnier_fructis"],
             4: MUSIC_2D_LABELS["whiskey"],
             5: MUSIC_2D_LABELS["aluminium"],
-     }
     },
-    {
-        "name": "sample12",
-        "materials": {
+    "sample12": {
             0: MUSIC_2D_LABELS["unlabelled"],
             1: MUSIC_2D_LABELS["brandy_chantre"],
             2: MUSIC_2D_LABELS["olive_oil"],
             3: MUSIC_2D_LABELS["methanol"],
             4: MUSIC_2D_LABELS["h2o2"],
             5: MUSIC_2D_LABELS["aluminium"],
-     }
     },
-    {
-        "name": "sample13",
-        "materials": {
+    "sample13": {
             0: MUSIC_2D_LABELS["unlabelled"],
             1: MUSIC_2D_LABELS["garnier_fructis"],
             2: MUSIC_2D_LABELS["whiskey"],
             3: MUSIC_2D_LABELS["h2o"],
             4: MUSIC_2D_LABELS["acetone"],
             5: MUSIC_2D_LABELS["aluminium"],
-     }
     },
-    {
-        "name": "sample14",
-        "materials": {
+    "sample14": {
             0: MUSIC_2D_LABELS["unlabelled"],
             1: MUSIC_2D_LABELS["nitromethane"],
             2: MUSIC_2D_LABELS["nivea_lotion"],
             3: MUSIC_2D_LABELS["hand_cream"],
             4: MUSIC_2D_LABELS["brandy_chantre"],
             5: MUSIC_2D_LABELS["aluminium"],
-     }
     },
-    {
-        "name": "sample15",
-        "materials": {
+    "sample15": {
             0: MUSIC_2D_LABELS["unlabelled"],
             1: MUSIC_2D_LABELS["h2o2"],
             2: MUSIC_2D_LABELS["olive_oil"],
             3: MUSIC_2D_LABELS["garnier_fructis"],
             4: MUSIC_2D_LABELS["nitromethane"],
             5: MUSIC_2D_LABELS["aluminium"],
-     }
     },
-    {
-        "name": "sample16",
-        "materials": {
+    "sample16": {
             0: MUSIC_2D_LABELS["unlabelled"],
             1: MUSIC_2D_LABELS["nivea_lotion"],
             2: MUSIC_2D_LABELS["whiskey"],
             3: MUSIC_2D_LABELS["h2o"],
             4: MUSIC_2D_LABELS["olive_oil"],
             5: MUSIC_2D_LABELS["aluminium"],
-     }
     },
-    {
-        "name": "sample17",
-        "materials": {
+    "sample17": {
             0: MUSIC_2D_LABELS["unlabelled"],
             1: MUSIC_2D_LABELS["whiskey"],
             2: MUSIC_2D_LABELS["brandy_chantre"],
             3: MUSIC_2D_LABELS["garnier_fructis"],
             4: MUSIC_2D_LABELS["olive_oil"],
             5: MUSIC_2D_LABELS["aluminium"],
-     }
     },
-    {
-        "name": "sample18",
-        "materials": {
+    "sample18": {
             0: MUSIC_2D_LABELS["unlabelled"],
             1: MUSIC_2D_LABELS["hand_cream"],
             2: MUSIC_2D_LABELS["nivea_lotion"],
             3: MUSIC_2D_LABELS["acetone"],
             4: MUSIC_2D_LABELS["h2o2"],
             5: MUSIC_2D_LABELS["aluminium"],
-     }
     },
-    {
-        "name": "sample19",
-        "materials": {
+    "sample19": {
             0: MUSIC_2D_LABELS["unlabelled"],
             1: MUSIC_2D_LABELS["h2o"],
             2: MUSIC_2D_LABELS["acetone"],
             3: MUSIC_2D_LABELS["olive_oil"],
             4: MUSIC_2D_LABELS["whiskey"],
             5: MUSIC_2D_LABELS["aluminium"],
-     }
     },
-    {
-        "name": "sample20",
-        "materials": {
+    "sample20": {
             0: MUSIC_2D_LABELS["unlabelled"],
             1: MUSIC_2D_LABELS["olive_oil"],
             2: MUSIC_2D_LABELS["brandy_chantre"],
             3: MUSIC_2D_LABELS["whiskey"],
             4: MUSIC_2D_LABELS["hand_cream"],
             5: MUSIC_2D_LABELS["aluminium"],
-     }
     },
 }
