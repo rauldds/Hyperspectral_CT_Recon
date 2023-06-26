@@ -24,3 +24,10 @@ Nevertheless here are some important deadlines:
 2. Approach:
     1. Do Slice Reconstruction from Histograms using Learning-based approach (some methods can be found in the spreadsheet)
     2. Do direct reconstruction and segmentation using Learning-based approach.
+
+
+# DATASET
+
+Download the [MUSIC 2D and Music 3D Spectral datasets](http://easi-cil.compute.dtu.dk/index.php/datasets/music/) and set them in the root of the project.
+
+
