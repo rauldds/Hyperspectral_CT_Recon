@@ -3,14 +3,23 @@ from losses import WeightedLoss
 from model import get_model
 import torch
 from ..data.music_2d_dataset import MUSIC2DDataset
+from torch.utils.data import DataLoader
+from torchvision import transforms
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 #TODO: Update training with dataloader
 def main(hparams):
     model = get_model(n_labels=hparams.n_labels)
-    dataset = MUSIC2DDataset(root=hparams.data_root,partition="train",spectrum="reducedSpectrum")
-    train_loader = torch.utils.data.DataLoader(dataset, batch_size=hparams['batch_size'])
+    #Initialize Transformations
+    transform = transforms.Compose([
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomRotation(),
+        transforms.ToTensor()
+    ])
+    dataset = MUSIC2DDataset(root=hparams.data_root,partition="train",spectrum="reducedSpectrum", transform=transform)
+    train_loader = DataLoader(dataset, batch_size=hparams['batch_size'])
     optimizer = torch.optim.Adam(model.parameters(), betas=([0.9, 0.999]), lr = hparams.lr)
     criterion = WeightedLoss()
     # Sample data
