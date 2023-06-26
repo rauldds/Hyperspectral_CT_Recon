@@ -1,0 +1,5 @@
+MUSIC2D_HDF5/
+.env
+*.pyc
+.vscode/
+src/dataset_utils/dataset_relabeling.py
