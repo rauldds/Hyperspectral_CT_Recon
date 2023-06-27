@@ -77,7 +77,6 @@ class Unet3DMC(nn.Module):
 		out = torch.cat([out, pre, init], dim=1)
 		# Add other residual connections
 		out = self.final(out)
-		# TODO: This softmax dimension applied on dimension 1?
 		out = nn.functional.softmax(out,dim=1)
 		return out
 
