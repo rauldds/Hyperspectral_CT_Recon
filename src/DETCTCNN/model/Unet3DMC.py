@@ -73,6 +73,7 @@ class Unet3DMC(nn.Module):
 		
 		pre = self.pre_conv(x)
 		out = self.encoder(pre)
+		# Get last output for decoder and rest for unet connections
 		out = self.decoder(out[-1], out[::-1][1:] + [pre] )
 		out = torch.cat([out, pre, init], dim=1)
 		# Add other residual connections
