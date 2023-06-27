@@ -63,7 +63,7 @@ if __name__ == "__main__":
     parser = ArgumentParser()
 
     parser.add_argument("--data_root", type=str, default="../../../MUSIC2D_HDF5", help="Data root directory")
-    parser.add_argument("--epochs", type=int, default=200, help="Number of maximum training epochs")
+    parser.add_argument("--epochs", type=int, default=700, help="Number of maximum training epochs")
     parser.add_argument("--batch_size", type=int, default=1, help="Batch size")
     parser.add_argument("--n_labels", type=int, default=music_2d_labels.size, help="Number of labels for final layer")
     parser.add_argument("--lr", type=int, default=0.00005, help="Learning rate")
