@@ -29,10 +29,19 @@ def pointcloud_colorizer(classes, num_classes):
     "Function to assign a random color to the different classes that appear in the cloud"
     colors = []
     point_colors = []
-    for i in range (num_classes):
+    '''for i in range (num_classes):
         color = list(np.random.choice(range(256), size=3))
         colors.append(color)
-    colors =(np.asarray(colors))/255
+    colors =(np.asarray(colors))/255'''
+    colors = [[0, 0, 1],
+               [0, 1, 0],
+               [1, 0, 0],
+               [0, 1, 1],
+               [1, 0, 1],
+               [1, 1, 0],
+               [0, 0, 0]]
+    colors = np.asarray(colors, dtype=float)
+    print(colors.shape)
 
     for idx in classes:
         point_colors.append(colors[int(idx)-1])
@@ -112,7 +121,7 @@ o3d.visualization.draw_geometries([pcl],
 
 #Visualization of Slices
 with h5py.File(DATASET_PATH + "/" + file
-                + '/fullSpectrum/reconstruction/reconstruction.h5', 'r') as f:
+                + '/reducedSpectrum/reconstruction/reconstruction.h5', 'r') as f:
     data = np.array(f['data']['value'], order='F')
 
 
@@ -122,7 +131,7 @@ plt.subplots_adjust(bottom=0.15)
 ax.imshow(data[0][0,:,:])
 
 ax_energy = plt.axes([0.25, 0.05, 0.5, 0.03])
-slider_energy = Slider(ax_energy, 'Sinogram No.', 0, 127, valinit=0, valfmt='%d')
+slider_energy = Slider(ax_energy, 'Sinogram No.', 0, 9, valinit=0, valfmt='%d')
 slider_energy.on_changed(update_energy_level)
 
 ax_step = plt.axes([0.25, 0.1, 0.5, 0.03])

@@ -1,3 +1,6 @@
+from re import M
+
+
 MUSIC_2D_LABELS = {
     "unlabelled": 0,
     "acetone": 1,
@@ -13,6 +16,8 @@ MUSIC_2D_LABELS = {
     "whiskey": 11,
     "aluminium": 12,
     "container": 13,
+    "other": 14,
+    "c4": 15
 }
 
 MUSIC_2D_SAMPLES = {
@@ -176,4 +181,67 @@ MUSIC_2D_SAMPLES = {
             4: MUSIC_2D_LABELS["hand_cream"],
             5: MUSIC_2D_LABELS["aluminium"],
     },
+}
+
+MUSIC_3D_SAMPLES = {
+        "Fluids": {
+                0: MUSIC_2D_LABELS["unlabelled"],
+                1: MUSIC_2D_LABELS["acetone"],
+                2: MUSIC_2D_LABELS["h2o"],
+                3: MUSIC_2D_LABELS["h2o2"],
+                4: MUSIC_2D_LABELS["other"],
+                5: MUSIC_2D_LABELS["olive_oil"],
+                6: MUSIC_2D_LABELS["whiskey"]
+        },
+        "Fruits":{
+                0: MUSIC_2D_LABELS["unlabelled"],
+                1: MUSIC_2D_LABELS["other"],
+                2: MUSIC_2D_LABELS["other"],
+                3: MUSIC_2D_LABELS["other"],
+                4: MUSIC_2D_LABELS["other"]
+        },
+        "NonThreat":{
+                0: MUSIC_2D_LABELS["unlabelled"],
+                1: MUSIC_2D_LABELS["other"],
+                2: MUSIC_2D_LABELS["other"],
+                3: MUSIC_2D_LABELS["other"],
+                4: MUSIC_2D_LABELS["other"],
+                5: MUSIC_2D_LABELS["other"]
+        },
+        "Sample_23012018":{
+                0: MUSIC_2D_LABELS["unlabelled"],
+                1: MUSIC_2D_LABELS["h2o"],
+                2: MUSIC_2D_LABELS["h2o2"],
+                3: MUSIC_2D_LABELS["whiskey"],
+                4: MUSIC_2D_LABELS["hand_cream"],
+                5: MUSIC_2D_LABELS["other"],
+                6: MUSIC_2D_LABELS["c4"],
+                7: MUSIC_2D_LABELS["aluminium"]
+        },
+        "Sample_24012018":{
+                0: MUSIC_2D_LABELS["unlabelled"],
+                1: MUSIC_2D_LABELS["aluminium"],
+                2: MUSIC_2D_LABELS["c4"],
+                3: MUSIC_2D_LABELS["hand_cream"],
+                4: MUSIC_2D_LABELS["h2o2"],
+                5: MUSIC_2D_LABELS["other"],
+                6: MUSIC_2D_LABELS["h2o"],
+                7: MUSIC_2D_LABELS["whiskey"]
+        },
+        "Sample_31102016":{
+                0: MUSIC_2D_LABELS["unlabelled"],
+                1: MUSIC_2D_LABELS["other"],
+                2: MUSIC_2D_LABELS["aluminium"],
+                3: MUSIC_2D_LABELS["c4"],
+                4: MUSIC_2D_LABELS["hand_cream"],
+                5: MUSIC_2D_LABELS["h2o"],
+                6: MUSIC_2D_LABELS["h2o2"]
+        },
+        "Threat":{
+                0: MUSIC_2D_LABELS["unlabelled"],
+                1: MUSIC_2D_LABELS["acetone"],
+                2: MUSIC_2D_LABELS["c4"],
+                3: MUSIC_2D_LABELS["h2o2"],
+                4: MUSIC_2D_LABELS["methanol"]
+        }
 }
