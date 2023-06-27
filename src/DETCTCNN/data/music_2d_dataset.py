@@ -54,12 +54,21 @@ class MUSIC2DDataset(Dataset):
         segmentation = self.segmentations[index]
         return segmentation
     
+    def _get_classes(self, segmentation):
+        uniques = np.unique(segmentation)
+        #classes = []
+        #for label in MUSIC_2D_LABELS:
+        #    if MUSIC_2D_LABELS[label] in uniques:
+        #        classes.append(label)
+        return uniques
+
     def __getitem__(self, index):
         image = self._get_image(index=index)
         segmentation = self._get_segmentation(index=index) 
+        classes = self._get_classes(segmentation)
         if self.transform is not None:
             image = self.transform(image)
-        return {"image": image, "segmentation": segmentation}
+        return {"image": image, "segmentation": segmentation, "classes":classes}
     
     def plot_item(self,index, rad_val):
         image = self.images[index].squeeze()[:,:,rad_val]
@@ -108,5 +117,5 @@ if __name__ == "__main__":
     args = argParser.parse_args()
     DATASET_PATH = args.dataset
     dataset = MUSIC2DDataset(root=DATASET_PATH,spectrum="reducedSpectrum",partition="train")
-    #print(len(dataset.get_classes()))
+    print(dataset[15]["classes"])
     #print(len(dataset[:]["segmentation"]))
