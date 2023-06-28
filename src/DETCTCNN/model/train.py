@@ -34,7 +34,7 @@ def main(hparams):
     transform = None
     dataset = MUSIC2DDataset(root=hparams.data_root,partition="train",spectrum="reducedSpectrum", transform=transform)
     train_loader = DataLoader(dataset, batch_size=hparams.batch_size)
-    optimizer = torch.optim.Adam(model.parameters(), betas=([0.9, 0.999]), lr = hparams.lr)
+    optimizer = torch.optim.Adam(model.parameters(), betas=([0.9, 0.999]), lr = hparams.learning_rate)
 
     from losses import DiceLoss
 
@@ -59,7 +59,7 @@ def main(hparams):
 
             y_hat = model(X.type(torch.DoubleTensor))
 
-            loss = loss_criterion(y, y_hat)
+            loss = loss_criterion(y_hat, y)
 
             loss.backward()
             
