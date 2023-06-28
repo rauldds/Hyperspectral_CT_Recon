@@ -7,8 +7,8 @@ import h5py
 from matplotlib import pyplot as plt
 import numpy as np
 import argparse
-from music_2d_labels import MUSIC_2D_LABELS
-
+# from music_2d_labels import MUSIC_2D_LABELS
+from  src.DETCTCNN.data.music_2d_labels import MUSIC_2D_LABELS
 
 class Dataset(ABC):
     def __init__(self, root, transform, partition, spectrum):
@@ -104,7 +104,7 @@ class MUSIC2DDataset(Dataset):
                 data = np.array(f['data']['value'], order='F')
                 if self.spectrum=="fullSpectrum":
                     data = data.squeeze(1)
-                self.images.append(data[:, np.newaxis])
+                self.images.append(data)
                 reconstruction_file.close()
             with segmentation_file as f:
                 data = np.array(f['data']['value'], order='F')
@@ -113,9 +113,9 @@ class MUSIC2DDataset(Dataset):
 
 if __name__ == "__main__":
     argParser = argparse.ArgumentParser()
-    argParser.add_argument("-d", "--dataset", help="dataset path", type=str, default="../../../MUSIC2D_HDF5")
+    argParser.add_argument("-d", "--dataset", help="dataset path", type=str, default="/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon/MUSIC2D_HDF5")
     args = argParser.parse_args()
     DATASET_PATH = args.dataset
+    print(DATASET_PATH)
     dataset = MUSIC2DDataset(root=DATASET_PATH,spectrum="reducedSpectrum",partition="train")
-    print(dataset[15]["image"].shape)
     #print(len(dataset[:]["segmentation"]))
