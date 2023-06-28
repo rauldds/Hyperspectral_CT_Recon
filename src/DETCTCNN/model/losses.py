@@ -32,4 +32,6 @@ class DiceLoss(nn.Module):
         super(DiceLoss, self).__init__()
 
     def forward(self, inputs, targets, smooth=1):
+        print(inputs.shape)
+        print(targets.shape)
         return dice_loss(inputs, targets, smooth)

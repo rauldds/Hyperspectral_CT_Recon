@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-from layers3D import ConvBlock
+from layers2D import ConvBlock
 
 
 class EncoderBlock(nn.Module):
@@ -12,7 +12,7 @@ class EncoderBlock(nn.Module):
 		self.encBlocks = nn.ModuleList(
 			[ConvBlock(channels[i], channels[i + 1])
 			 	for i in range(len(channels) - 1)])
-		self.pool = nn.MaxPool3d(2)
+		self.pool = nn.MaxPool2d(2)
 
 	def forward(self,x):
 		outs = []
@@ -20,7 +20,7 @@ class EncoderBlock(nn.Module):
 			x = self.pool(x)
 			x = block(x)
 			outs.append(x)
-		return outs
+		return outs 
 
 class DecoderBlock(nn.Module):
 	def __init__(self, channels=(256,128,64)):
@@ -30,15 +30,15 @@ class DecoderBlock(nn.Module):
 		# decoder blocks
 		self.channels = channels
 		self.upconvs = nn.ModuleList(
-			[nn.ConvTranspose3d(channels[i], channels[i + 1], 2, 2)
+			[nn.ConvTranspose2d(channels[i], channels[i + 1], 2, 2)
 			 	for i in range(len(channels) - 1)])
 		self.dec_blocks = nn.ModuleList(
 			[ConvBlock(channels[i], channels[i + 1])
 			 	for i in range(len(channels) - 1)])
-		# Missing one conv block
-		self.dec_blocks_2 = nn.ModuleList(
-			[ConvBlock(channels[i+1], channels[i + 1])
-			 	for i in range(len(channels) - 1)])
+		# # Missing one conv block
+		# self.dec_blocks_2 = nn.ModuleList(
+		# 	[ConvBlock(channels[i+1], channels[i + 1])
+		# 	 	for i in range(len(channels) - 1)])
 
 	def forward(self, x, connections):
 		for i in range(len(self.channels) - 1):
@@ -46,38 +46,39 @@ class DecoderBlock(nn.Module):
 			x = self.upconvs[i](x)
 			x = torch.cat([x, connections[i]], dim=1)
 			x = self.dec_blocks[i](x)
-			x = self.dec_blocks_2[i](x)
+			# x = self.dec_blocks_2[i](x)
 		return x
 
 # Basic out channel is a multiplier
-class Unet3DMC(nn.Module):
+class Unet2DMC(nn.Module):
 	def __init__(self,input_channels=2,with_1conv=True, use_bn=False, depth=3, basic_out_channel=64, n_labels=7):
-		super(Unet3DMC, self).__init__()
+		super(Unet2DMC, self).__init__()
 		self.with_1conv=with_1conv
 		self.input_channels = input_channels
 		self.init_conv = nn.Sequential(
-    		ConvBlock(input_channels, 8, kernel=(1,1,1), use_bn=use_bn),
-    		ConvBlock(8, 8, kernel=(1,1,1), use_bn=use_bn)
+    		ConvBlock(input_channels, 8, kernel=(1,1), use_bn=use_bn),
+    		ConvBlock(8, 8, kernel=(1,1), use_bn=use_bn)
 		)
 		self.pre_conv = nn.Sequential(
-    		ConvBlock(input_channels, 32, kernel=(1,1,1), use_bn=use_bn),
-    		ConvBlock(32, 64, kernel=(1,1,1), use_bn=use_bn)
+    		ConvBlock(input_channels, 32, kernel=(1,1), use_bn=use_bn),
+    		ConvBlock(32, 64, kernel=(1,1), use_bn=use_bn)
 		)
-		self.encoder = EncoderBlock(channels=basic_out_channel*np.array([2**(i) for i in range(depth)])) 
-		self.decoder = DecoderBlock(channels=basic_out_channel*np.array([2**(i) for i in reversed(range(depth))]))
-		self.final = ConvBlock(basic_out_channel + 64 + 8, n_labels, kernel=(1, 1, 1))
+		encoder_channels = basic_out_channel*np.array([2**(i) for i in range(depth)])
+		self.encoder = EncoderBlock(channels=encoder_channels) 
+		decoder_channels = basic_out_channel*np.array([2**(i) for i in reversed(range(depth))]) 
+		self.decoder = DecoderBlock(channels=decoder_channels)
+		self.final = ConvBlock(basic_out_channel, n_labels, kernel=(1, 1))
 
 	def forward(self,x):
-		x = x.type(torch.DoubleTensor)
-		print(type(x))
 		out = x
 		init = self.init_conv(x)
 		
 		pre = self.pre_conv(x)
 		out = self.encoder(pre)
+		connections = list(reversed([pre] + out[::-1][1:] ))
+		connections.append(torch.cat([pre, init], dim=1))
 		# Get last output for decoder and rest for unet connections
-		out = self.decoder(out[-1], out[::-1][1:] + [pre] )
-		out = torch.cat([out, pre, init], dim=1)
+		out = self.decoder(out[-1],connections)
 		# Add other residual connections
 		out = self.final(out)
 		out = nn.functional.softmax(out,dim=1)
