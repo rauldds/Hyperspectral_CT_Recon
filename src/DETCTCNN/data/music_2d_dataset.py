@@ -11,8 +11,9 @@ from music_2d_labels import MUSIC_2D_LABELS
 
 
 class Dataset(ABC):
-    def __init__(self, root, partition,spectrum):
+    def __init__(self, root, transform, partition, spectrum):
         self.root_path = root
+        self.transform = transform
         self.partition = partition
         self.spectrum = spectrum
 
@@ -27,14 +28,12 @@ class Dataset(ABC):
 # Data shape is (100,100,1,128). This is 2D data with 128 channels!
 # TODO: Do we want to retrieve sinograms?
 class MUSIC2DDataset(Dataset):
-    def __init__(self, *args, root=None, partition="train",spectrum="fullSpectrum",**kwargs):
-        super().__init__(*args, root=root, partition=partition, spectrum=spectrum,
+    def __init__(self, *args, root=None, transform=None, partition="train", spectrum="fullSpectrum", **kwargs):
+        super().__init__(*args, root=root, transform=transform, partition=partition, spectrum=spectrum,
                             **kwargs)
         self.images = []
         self.classes = []
         self.segmentations = []
-        # If we need any transformations
-        self.transform = None
         #Collect all the class names
         for label in MUSIC_2D_LABELS:
             self.classes.append(label)
@@ -52,6 +51,8 @@ class MUSIC2DDataset(Dataset):
 
     def _get_segmentation(self,index):
         segmentation = self.segmentations[index]
+        if self.transform is not None:
+            segmentation = self.transform(segmentation)
         return segmentation
     
     def _get_classes(self, segmentation):
@@ -103,7 +104,7 @@ class MUSIC2DDataset(Dataset):
                 data = np.array(f['data']['value'], order='F')
                 if self.spectrum=="fullSpectrum":
                     data = data.squeeze(1)
-                self.images.append(data)
+                self.images.append(data[:, np.newaxis])
                 reconstruction_file.close()
             with segmentation_file as f:
                 data = np.array(f['data']['value'], order='F')
@@ -111,11 +112,10 @@ class MUSIC2DDataset(Dataset):
                 segmentation_file.close()
 
 if __name__ == "__main__":
-    #path = "/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon/MUSIC2D_HDF5"
     argParser = argparse.ArgumentParser()
-    argParser.add_argument("-d", "--dataset", help="dataset path", type=str)
+    argParser.add_argument("-d", "--dataset", help="dataset path", type=str, default="../../../MUSIC2D_HDF5")
     args = argParser.parse_args()
     DATASET_PATH = args.dataset
     dataset = MUSIC2DDataset(root=DATASET_PATH,spectrum="reducedSpectrum",partition="train")
-    print(dataset[15]["classes"])
+    print(dataset[15]["image"].shape)
     #print(len(dataset[:]["segmentation"]))

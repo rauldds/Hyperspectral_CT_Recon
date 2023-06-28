@@ -64,7 +64,7 @@ def update_step(val):
     fig.canvas.draw_idle()
 
 argParser = argparse.ArgumentParser()
-argParser.add_argument("-d", "--dataset", help="dataset path", type=str)
+argParser.add_argument("-d", "--dataset", help="dataset path", type=str, default="../../MUSIC3D_HDF5")
 
 args = argParser.parse_args()
 print("DATASET PATH: %s" % args.dataset)
