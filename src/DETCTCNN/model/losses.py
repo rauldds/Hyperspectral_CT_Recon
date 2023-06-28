@@ -1,4 +1,5 @@
 import torch
+import torch.nn as nn
 
 def dice_loss(input, target, smooth=1.):
     iflat = input.view(-1).float()
@@ -24,3 +25,11 @@ class WeightedLoss(object):
     def __call__(self, input, target):
         return weighted_loss(input=input, target=target, weights=self.weights, loss_func=self.loss_func,
                              weighted_dimension=self.weighted_dimension)
+
+
+class DiceLoss(nn.Module):
+    def __init__(self, weight=None, size_average=True):
+        super(DiceLoss, self).__init__()
+
+    def forward(self, inputs, targets, smooth=1):
+        return dice_loss(inputs, targets, smooth)
