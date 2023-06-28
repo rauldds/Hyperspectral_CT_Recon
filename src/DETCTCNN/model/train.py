@@ -3,12 +3,17 @@ from losses import WeightedLoss
 from model import get_model
 import torch
 
-import music_2d_labels
+# import music_2d_labels
+# from src.DETCTCNN.data.music_2d_labels import MUSIC_2D_LABELS
+from src.DETCTCNN.data.music_2d_labels import MUSIC_2D_LABELS
 from src.DETCTCNN.augmentations.augmentations import AddGaussianNoise
-from ..data.music_2d_dataset import MUSIC2DDataset
+# from src.DETCTCNN.data.music_2d_dataset import MUSIC2DDataset
+from  src.DETCTCNN.data import music_2d_dataset
+MUSIC2DDataset = music_2d_dataset.MUSIC2DDataset
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
+LABELS_SIZE = len(MUSIC_2D_LABELS)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -16,25 +21,28 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def main(hparams):
     model = get_model(n_labels=hparams.n_labels)
     #Initialize Transformations
-    transform = transforms.Compose([
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomVerticalFlip(),
-        transforms.RandomAffine(),
-        transforms.RandomRotation(),
-        transforms.RandomResizedCrop(),
-        AddGaussianNoise(),
-        transforms.ToTensor()
-    ])
+    # transform = transforms.Compose([
+    #     transforms.RandomHorizontalFlip(),
+    #     transforms.RandomVerticalFlip(),
+    #     transforms.RandomAffine(),
+    #     transforms.RandomRotation(),
+    #     transforms.RandomResizedCrop(),
+    #     AddGaussianNoise(),
+    #     transforms.ToTensor()
+    # ])
     transform = None
     dataset = MUSIC2DDataset(root=hparams.data_root,partition="train",spectrum="reducedSpectrum", transform=transform)
     train_loader = DataLoader(dataset, batch_size=hparams['batch_size'])
     optimizer = torch.optim.Adam(model.parameters(), betas=([0.9, 0.999]), lr = hparams.lr)
-    criterion = WeightedLoss()
+
+    from losses import DiceLoss
+
     # Sample data
     # x = torch.ones(size=(1,2,32,32,32))
     # y = model(x)
     for epoch in range(hparams.epochs):  # loop over the dataset multiple times
 
+        loss_criterion = DiceLoss().to(device)
         running_loss = 0.0
         for i, data in enumerate(train_loader, 0):
             # get the inputs; data is a list of [inputs, labels]
@@ -44,9 +52,11 @@ def main(hparams):
             
             optimizer.zero_grad()
 
-            y_hat = model(X).view(-1,15,2)
+            #y_hat = model(X).view(-1,15,2)
 
-            loss = criterion(y, y_hat)
+            y_hat = model(X)
+
+            loss = loss_criterion(y, y_hat)
 
             loss.backward()
             
@@ -65,7 +75,7 @@ if __name__ == "__main__":
     parser.add_argument("--data_root", type=str, default="../../../MUSIC2D_HDF5", help="Data root directory")
     parser.add_argument("--epochs", type=int, default=700, help="Number of maximum training epochs")
     parser.add_argument("--batch_size", type=int, default=1, help="Batch size")
-    parser.add_argument("--n_labels", type=int, default=music_2d_labels.size, help="Number of labels for final layer")
+    parser.add_argument("--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
     parser.add_argument("--lr", type=int, default=0.00005, help="Learning rate")
     args = parser.parse_args()
     main(args)
