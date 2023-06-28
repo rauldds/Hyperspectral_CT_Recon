@@ -22,16 +22,16 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def main(hparams):
     model = get_model(input_channels=10, n_labels=hparams.n_labels)
     model.type(torch.DoubleTensor)
-    #Initialize Transformations
-    # transform = transforms.Compose([
-    #     transforms.RandomHorizontalFlip(),
-    #     transforms.RandomVerticalFlip(),
-    #     transforms.RandomAffine(),
-    #     transforms.RandomRotation(),
-    #     transforms.RandomResizedCrop(),
-    #     AddGaussianNoise(),
-    #     transforms.ToTensor()
-    # ])
+    # Initialize Transformations
+    transform = transforms.Compose([
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomVerticalFlip(),
+        transforms.RandomAffine(),
+        transforms.RandomRotation(),
+        transforms.RandomResizedCrop(),
+        AddGaussianNoise(),
+        transforms.ToTensor()
+    ])
     transform = None
     dataset = MUSIC2DDataset(root=hparams.data_root,partition="train",spectrum="reducedSpectrum", transform=transform)
     train_loader = DataLoader(dataset, batch_size=hparams.batch_size)
@@ -44,6 +44,7 @@ def main(hparams):
     # y = model(x)
 
     tb = SummaryWriter()
+
     for epoch in range(hparams.epochs):  # loop over the dataset multiple times
 
         loss_criterion = DiceLoss().to(device)
@@ -56,18 +57,25 @@ def main(hparams):
             
             optimizer.zero_grad()
 
-            #y_hat = model(X).view(-1,15,2)
-
+            # Forward Pass
             y_hat = model(X.type(torch.DoubleTensor))
+            loss = loss_criterion(y_hat, y)
 
-            loss = loss_criterion(y, y_hat)
-
+            # backward pass
             loss.backward()
-            
             optimizer.step()
 
             # print statistics
             running_loss += loss.item()
+
+
+            if epoch % 10 == 0:
+                torch.save({
+                    "epoch": epoch,
+                    "model_state_dict": model.state_dict(),
+                    "optimizer_state_dict": optimizer.state_dict(),
+                    "loss": running_loss
+                }, "model.pt")
 
             tb.add_scalar("Loss", running_loss, epoch)
             if i % 10 == 9: 
@@ -78,9 +86,8 @@ def main(hparams):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-
-    parser.add_argument("-dr", "--data_root", type=str, default="/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon/MUSIC2D_HDF5", help="Data root directory")
-    parser.add_argument("-e", "--epochs", type=int, default=700, help="Number of maximum training epochs")
+    parser.add_argument("-dr", "--data_root", type=str, default="/Users/davidg/Hyperspectral_CT_Recon/MUSIC2D_HDF5", help="Data root directory")
+    parser.add_argument("-e", "--epochs", type=int, default=100, help="Number of maximum training epochs")
     parser.add_argument("-bs", "--batch_size", type=int, default=1, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
     parser.add_argument("-lr", "--learning_rate", type=int, default=0.00005, help="Learning rate")

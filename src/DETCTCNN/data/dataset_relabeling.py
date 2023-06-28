@@ -37,7 +37,7 @@ if "MUSIC2D" in DATASET_PATH:
         channels = []
         for clas in range(len(MUSIC_2D_LABELS)):
             channel = (data==clas)
-            print(channel.shape)
+            #print(channel.shape)
             channels.append(channel)
         channels = np.asarray(channels)
         print(channels.shape)

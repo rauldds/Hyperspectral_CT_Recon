@@ -117,5 +117,5 @@ if __name__ == "__main__":
     args = argParser.parse_args()
     DATASET_PATH = args.dataset
     print(DATASET_PATH)
-    dataset = MUSIC2DDataset(root=DATASET_PATH,spectrum="reducedSpectrum",partition="train")
-    #print(len(dataset[:]["segmentation"]))
+    dataset = MUSIC2DDataset(root=DATASET_PATH,spectrum="reducedSpectrum",partition="valid")
+    print(np.asarray(dataset[:]["segmentation"]).shape)
