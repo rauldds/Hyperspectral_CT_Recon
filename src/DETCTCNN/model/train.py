@@ -19,7 +19,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 #TODO: Update training with dataloader
 def main(hparams):
-    model = get_model(n_labels=hparams.n_labels)
+    model = get_model(input_channels=10, n_labels=hparams.n_labels)
+    model.type(torch.DoubleTensor)
     #Initialize Transformations
     # transform = transforms.Compose([
     #     transforms.RandomHorizontalFlip(),
@@ -32,7 +33,7 @@ def main(hparams):
     # ])
     transform = None
     dataset = MUSIC2DDataset(root=hparams.data_root,partition="train",spectrum="reducedSpectrum", transform=transform)
-    train_loader = DataLoader(dataset, batch_size=hparams['batch_size'])
+    train_loader = DataLoader(dataset, batch_size=1)
     optimizer = torch.optim.Adam(model.parameters(), betas=([0.9, 0.999]), lr = hparams.lr)
 
     from losses import DiceLoss
@@ -46,7 +47,7 @@ def main(hparams):
         running_loss = 0.0
         for i, data in enumerate(train_loader, 0):
             # get the inputs; data is a list of [inputs, labels]
-            X, y  = data['image'], data['segmentation'] 
+            X, y  = data['image'].type(torch.FloatTensor), data['segmentation']
             X = X.to(device)
             y = y.to(device)
             
@@ -54,7 +55,7 @@ def main(hparams):
 
             #y_hat = model(X).view(-1,15,2)
 
-            y_hat = model(X)
+            y_hat = model(X.type(torch.DoubleTensor))
 
             loss = loss_criterion(y, y_hat)
 
