@@ -77,7 +77,7 @@ def main(hparams):
 if __name__ == "__main__":
     parser = ArgumentParser()
 
-    parser.add_argument("-dr", "--data_root", type=str, default="../../../MUSIC2D_HDF5", help="Data root directory")
+    parser.add_argument("-dr", "--data_root", type=str, default="/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon/MUSIC2D_HDF5", help="Data root directory")
     parser.add_argument("-e", "--epochs", type=int, default=700, help="Number of maximum training epochs")
     parser.add_argument("-bs", "--batch_size", type=int, default=1, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
