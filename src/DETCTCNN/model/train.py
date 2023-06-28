@@ -68,6 +68,15 @@ def main(hparams):
             # print statistics
             running_loss += loss.item()
 
+
+            if epoch % 10 == 0:
+                torch.save({
+                    "epoch": epoch,
+                    "model_state_dict": model.state_dict(),
+                    "optimizer_state_dict": optimizer.state_dict(),
+                    "loss": running_loss
+                }, "model.pt")
+
             tb.add_scalar("Loss", running_loss, epoch)
             if i % 10 == 9: 
                 print('(Epoch: {} / {}) Loss: {}'.format(epoch + 1, hparams.epochs, running_loss / (len(train_loader)*epoch+i)))
@@ -77,8 +86,8 @@ def main(hparams):
 if __name__ == "__main__":
     parser = ArgumentParser()
 
-    parser.add_argument("-dr", "--data_root", type=str, default="/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon/MUSIC2D_HDF5", help="Data root directory")
-    parser.add_argument("-e", "--epochs", type=int, default=700, help="Number of maximum training epochs")
+    parser.add_argument("-dr", "--data_root", type=str, default="/Users/davidg/Hyperspectral_CT_Recon/MUSIC2D_HDF5", help="Data root directory")
+    parser.add_argument("-e", "--epochs", type=int, default=20, help="Number of maximum training epochs")
     parser.add_argument("-bs", "--batch_size", type=int, default=1, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
     parser.add_argument("-lr", "--learning_rate", type=int, default=0.00005, help="Learning rate")
