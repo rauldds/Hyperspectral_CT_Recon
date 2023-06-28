@@ -1,4 +1,5 @@
 MUSIC2D_HDF5/
+MUSIC3D_HDF5/
 .env
 *.pyc
 .vscode/

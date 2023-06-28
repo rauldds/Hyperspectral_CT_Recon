@@ -2,15 +2,32 @@ from argparse import ArgumentParser
 from losses import WeightedLoss
 from model import get_model
 import torch
+
+import music_2d_labels
+from src.DETCTCNN.augmentations.augmentations import AddGaussianNoise
 from ..data.music_2d_dataset import MUSIC2DDataset
+from torch.utils.data import DataLoader
+from torchvision import transforms
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 #TODO: Update training with dataloader
 def main(hparams):
     model = get_model(n_labels=hparams.n_labels)
-    dataset = MUSIC2DDataset(root=hparams.data_root,partition="train",spectrum="reducedSpectrum")
-    train_loader = torch.utils.data.DataLoader(dataset, batch_size=hparams['batch_size'])
+    #Initialize Transformations
+    transform = transforms.Compose([
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomVerticalFlip(),
+        transforms.RandomAffine(),
+        transforms.RandomRotation(),
+        transforms.RandomResizedCrop(),
+        AddGaussianNoise(),
+        transforms.ToTensor()
+    ])
+    transform = None
+    dataset = MUSIC2DDataset(root=hparams.data_root,partition="train",spectrum="reducedSpectrum", transform=transform)
+    train_loader = DataLoader(dataset, batch_size=hparams['batch_size'])
     optimizer = torch.optim.Adam(model.parameters(), betas=([0.9, 0.999]), lr = hparams.lr)
     criterion = WeightedLoss()
     # Sample data
@@ -46,9 +63,9 @@ if __name__ == "__main__":
     parser = ArgumentParser()
 
     parser.add_argument("--data_root", type=str, default="../../../MUSIC2D_HDF5", help="Data root directory")
-    parser.add_argument("--epochs", type=int, default=200, help="Number of maximum training epochs")
+    parser.add_argument("--epochs", type=int, default=700, help="Number of maximum training epochs")
     parser.add_argument("--batch_size", type=int, default=1, help="Batch size")
-    parser.add_argument("--n_labels", type=int, default=11, help="Number of labels for final layer")
+    parser.add_argument("--n_labels", type=int, default=music_2d_labels.size, help="Number of labels for final layer")
     parser.add_argument("--lr", type=int, default=0.00005, help="Learning rate")
     args = parser.parse_args()
     main(args)

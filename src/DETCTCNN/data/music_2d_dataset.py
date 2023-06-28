@@ -11,8 +11,9 @@ from music_2d_labels import MUSIC_2D_LABELS
 
 
 class Dataset(ABC):
-    def __init__(self, root, partition,spectrum):
+    def __init__(self, root, transform, partition, spectrum):
         self.root_path = root
+        self.transform = transform
         self.partition = partition
         self.spectrum = spectrum
 
@@ -27,14 +28,12 @@ class Dataset(ABC):
 # Data shape is (100,100,1,128). This is 2D data with 128 channels!
 # TODO: Do we want to retrieve sinograms?
 class MUSIC2DDataset(Dataset):
-    def __init__(self, *args, root=None, partition="train",spectrum="fullSpectrum",**kwargs):
-        super().__init__(*args, root=root, partition=partition, spectrum=spectrum,
+    def __init__(self, *args, root=None, transform=None, partition="train", spectrum="fullSpectrum", **kwargs):
+        super().__init__(*args, root=root, transform=transform, partition=partition, spectrum=spectrum,
                             **kwargs)
         self.images = []
         self.classes = []
         self.segmentations = []
-        # If we need any transformations
-        self.transform = None
         #Collect all the class names
         for label in MUSIC_2D_LABELS:
             self.classes.append(label)
@@ -52,6 +51,8 @@ class MUSIC2DDataset(Dataset):
 
     def _get_segmentation(self,index):
         segmentation = self.segmentations[index]
+        if self.transform is not None:
+            segmentation = self.transform(segmentation)
         return segmentation
     
     def _get_classes(self, segmentation):
