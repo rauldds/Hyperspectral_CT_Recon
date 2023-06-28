@@ -14,6 +14,7 @@ def main(hparams):
     print(dataset.shape)
     with torch.no_grad():
         x = model(dataset)
+    
     print(x)
 
 if __name__ == "__main__":
