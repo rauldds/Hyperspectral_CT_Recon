@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-from layers2D import ConvBlock
+from src.DETCTCNN.model.layers2D import ConvBlock
 
 
 class EncoderBlock(nn.Module):

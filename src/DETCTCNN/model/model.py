@@ -1,5 +1,5 @@
-from Unet3DMC import Unet3DMC
-from Unet2DMC import Unet2DMC
+from src.DETCTCNN.model.Unet3DMC import Unet3DMC
+from src.DETCTCNN.model.Unet2DMC import Unet2DMC
 
 
 def get_model(input_channels=2,with_1conv=True, use_bn=False, depth=3,basic_out_channel=64, n_labels=7, data_dimensions=2):
