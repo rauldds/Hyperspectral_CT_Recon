@@ -68,6 +68,8 @@ class Unet3DMC(nn.Module):
 		self.final = ConvBlock(basic_out_channel + 64 + 8, n_labels, kernel=(1, 1, 1))
 
 	def forward(self,x):
+		x = x.type(torch.DoubleTensor)
+		print(type(x))
 		out = x
 		init = self.init_conv(x)
 		
