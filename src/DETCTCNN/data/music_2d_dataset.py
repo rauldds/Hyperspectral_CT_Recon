@@ -104,7 +104,7 @@ class MUSIC2DDataset(Dataset):
                 data = np.array(f['data']['value'], order='F')
                 if self.spectrum=="fullSpectrum":
                     data = data.squeeze(1)
-                self.images.append(data)
+                self.images.append(data[:, np.newaxis])
                 reconstruction_file.close()
             with segmentation_file as f:
                 data = np.array(f['data']['value'], order='F')
@@ -112,11 +112,10 @@ class MUSIC2DDataset(Dataset):
                 segmentation_file.close()
 
 if __name__ == "__main__":
-    #path = "/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon/MUSIC2D_HDF5"
     argParser = argparse.ArgumentParser()
-    argParser.add_argument("-d", "--dataset", help="dataset path", type=str)
+    argParser.add_argument("-d", "--dataset", help="dataset path", type=str, default="../../../MUSIC2D_HDF5")
     args = argParser.parse_args()
     DATASET_PATH = args.dataset
     dataset = MUSIC2DDataset(root=DATASET_PATH,spectrum="reducedSpectrum",partition="train")
-    print(dataset[15]["classes"])
+    print(dataset[15]["image"].shape)
     #print(len(dataset[:]["segmentation"]))
