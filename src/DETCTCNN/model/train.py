@@ -2,12 +2,12 @@ from argparse import ArgumentParser
 from losses import WeightedLoss
 from model import get_model
 import torch
+import torchvision
+from torch.utils.tensorboard import SummaryWriter
 
-# import music_2d_labels
-# from src.DETCTCNN.data.music_2d_labels import MUSIC_2D_LABELS
+
 from src.DETCTCNN.data.music_2d_labels import MUSIC_2D_LABELS
 from src.DETCTCNN.augmentations.augmentations import AddGaussianNoise
-# from src.DETCTCNN.data.music_2d_dataset import MUSIC2DDataset
 from  src.DETCTCNN.data import music_2d_dataset
 MUSIC2DDataset = music_2d_dataset.MUSIC2DDataset
 from torch.utils.data import DataLoader
@@ -41,6 +41,8 @@ def main(hparams):
     # Sample data
     # x = torch.ones(size=(1,2,32,32,32))
     # y = model(x)
+
+    tb = SummaryWriter()
     for epoch in range(hparams.epochs):  # loop over the dataset multiple times
 
         loss_criterion = DiceLoss().to(device)
@@ -65,6 +67,8 @@ def main(hparams):
 
             # print statistics
             running_loss += loss.item()
+
+            tb.add_scalar("Loss", running_loss, epoch)
             if i % 10 == 9: 
                 print('(Epoch: {} / {}) Loss: {}'.format(epoch + 1, hparams.epochs, running_loss / (len(train_loader)*epoch+i)))
 
@@ -73,10 +77,10 @@ def main(hparams):
 if __name__ == "__main__":
     parser = ArgumentParser()
 
-    parser.add_argument("--data_root", type=str, default="../../../MUSIC2D_HDF5", help="Data root directory")
-    parser.add_argument("--epochs", type=int, default=700, help="Number of maximum training epochs")
-    parser.add_argument("--batch_size", type=int, default=1, help="Batch size")
-    parser.add_argument("--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
-    parser.add_argument("--lr", type=int, default=0.00005, help="Learning rate")
+    parser.add_argument("-dr", "--data_root", type=str, default="../../../MUSIC2D_HDF5", help="Data root directory")
+    parser.add_argument("-e", "--epochs", type=int, default=700, help="Number of maximum training epochs")
+    parser.add_argument("-bs", "--batch_size", type=int, default=1, help="Batch size")
+    parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
+    parser.add_argument("-lr", "--learning_rate", type=int, default=0.00005, help="Learning rate")
     args = parser.parse_args()
     main(args)
