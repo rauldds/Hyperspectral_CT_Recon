@@ -39,7 +39,6 @@ def class_frequencies(dataset, n_classes):
 
 def class_weights(dataset, n_classes):
       freqs = class_frequencies(dataset=dataset, n_classes=n_classes)
-      print(freqs)
       med = np.median(freqs[freqs != 0])
       w_s = med/freqs
       w_s[w_s == inf] =  0
