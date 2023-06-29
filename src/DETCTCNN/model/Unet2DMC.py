@@ -51,13 +51,13 @@ class DecoderBlock(nn.Module):
 
 # Basic out channel is a multiplier
 class Unet2DMC(nn.Module):
-	def __init__(self,input_channels=2,with_1conv=True, use_bn=False, depth=3, basic_out_channel=64, n_labels=7):
+	def __init__(self,input_channels=2,with_1conv=True, use_bn=False, depth=3, basic_out_channel=640, n_labels=7):
 		super(Unet2DMC, self).__init__()
 		self.with_1conv=with_1conv
 		self.input_channels = input_channels
 		self.init_conv = nn.Sequential(
-    		ConvBlock(input_channels, 8, kernel=(1,1), use_bn=use_bn),
-    		ConvBlock(8, 8, kernel=(1,1), use_bn=use_bn)
+    		ConvBlock(input_channels, 40, kernel=(1,1), use_bn=use_bn),
+    		ConvBlock(40, 40, kernel=(1,1), use_bn=use_bn)
 		)
 		self.pre_conv = nn.Sequential(
     		ConvBlock(input_channels, 32, kernel=(1,1), use_bn=use_bn),
