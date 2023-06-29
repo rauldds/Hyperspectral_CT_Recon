@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from losses import WeightedLoss
+from losses import WeightedLoss, DiceLoss, dice_loss
 from model import get_model
 import torch
 import torchvision
@@ -9,7 +9,7 @@ from torch.utils.tensorboard import SummaryWriter
 from src.DETCTCNN.data.music_2d_labels import MUSIC_2D_LABELS
 from src.DETCTCNN.augmentations.augmentations import AddGaussianNoise
 from  src.DETCTCNN.data import music_2d_dataset
-from src.DETCTCNN.model.utils import image_from_segmentation
+from src.DETCTCNN.model.utils import class_weights, image_from_segmentation
 MUSIC2DDataset = music_2d_dataset.MUSIC2DDataset
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -20,34 +20,36 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 #TODO: Update training with dataloader
 def main(hparams):
-    model = get_model(input_channels=10, n_labels=hparams.n_labels)
-    model.type(torch.DoubleTensor)
+    
     # Initialize Transformations
-    transform = transforms.Compose([
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomVerticalFlip(),
-        transforms.RandomAffine(),
-        transforms.RandomRotation(),
-        transforms.RandomResizedCrop(),
-        AddGaussianNoise(),
-        transforms.ToTensor()
-    ])
+    # transform = transforms.Compose([
+    #     transforms.RandomHorizontalFlip(),
+    #     transforms.RandomVerticalFlip(),
+        # transforms.RandomAffine(degrees=20),
+        # transforms.RandomResizedCrop(),
+    #     AddGaussianNoise(),
+    #     transforms.ToTensor()
+    # ])
+
+    
     transform = None
-    dataset = MUSIC2DDataset(root=hparams.data_root,partition="train",spectrum="reducedSpectrum", transform=transform)
+    dataset = MUSIC2DDataset(root=hparams.data_root,partition="valid",spectrum="reducedSpectrum", transform=transform)
     train_loader = DataLoader(dataset, batch_size=hparams.batch_size)
+
+
+    dice_weights = class_weights(dataset=dataset, n_classes=len(MUSIC_2D_LABELS))
+
+
+    model = get_model(input_channels=10, n_labels=hparams.n_labels, use_bn=True)
+    model.type(torch.DoubleTensor)
+    
     optimizer = torch.optim.Adam(model.parameters(), betas=([0.9, 0.999]), lr = hparams.learning_rate)
-
-    from losses import DiceLoss
-
-    # Sample data
-    # x = torch.ones(size=(1,2,32,32,32))
-    # y = model(x)
 
     tb = SummaryWriter()
 
     for epoch in range(hparams.epochs):  # loop over the dataset multiple times
 
-        loss_criterion = DiceLoss().to(device)
+        loss_criterion = WeightedLoss(weights=dice_weights, loss_func=dice_loss ).to(device)
         running_loss = 0.0
         for i, data in enumerate(train_loader, 0):
             # get the inputs; data is a list of [inputs, labels]
@@ -77,7 +79,9 @@ def main(hparams):
                     "loss": running_loss
                 }, "model.pt")
 
-            tb.add_scalar("Loss", running_loss, epoch)
+            # tb.add_scalar("Loss", running_loss, epoch)
+            # tb.add_image(tag="Prediction" + str(i), global_step=len(train_loader)*epoch+i, img_tensor=image_from_segmentation(y_hat, LABELS_SIZE))
+            # print('(Epoch: {} / {}) Loss: {}'.format(epoch + 1, hparams.epochs, running_loss / (1+(len(train_loader)*epoch+i))))
             if i % 10 == 9: 
                 tb.add_image(tag="Prediction" + str(i), global_step=len(train_loader)*epoch+i, img_tensor=image_from_segmentation(y_hat, LABELS_SIZE))
                 print('(Epoch: {} / {}) Loss: {}'.format(epoch + 1, hparams.epochs, running_loss / (len(train_loader)*epoch+i)))
@@ -86,7 +90,7 @@ def main(hparams):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("-dr", "--data_root", type=str, default="/Users/davidg/Hyperspectral_CT_Recon/MUSIC2D_HDF5", help="Data root directory")
+    parser.add_argument("-dr", "--data_root", type=str, default="/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon/MUSIC2D_HDF5", help="Data root directory")
     parser.add_argument("-e", "--epochs", type=int, default=100, help="Number of maximum training epochs")
     parser.add_argument("-bs", "--batch_size", type=int, default=1, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")

@@ -16,13 +16,14 @@ def weighted_loss(input, target, weights, loss_func, weighted_dimension=1):
         losses[index] = loss_func(x, y)
     return torch.mean(weights * losses)
 
-class WeightedLoss(object):
+class WeightedLoss(nn.Module):
     def __init__(self, weights, loss_func, weighted_dimension=1):
+        super(WeightedLoss, self).__init__()
         self.weights = weights
         self.loss_func = loss_func
         self.weighted_dimension = weighted_dimension
 
-    def __call__(self, input, target):
+    def forward(self, input, target):
         return weighted_loss(input=input, target=target, weights=self.weights, loss_func=self.loss_func,
                              weighted_dimension=self.weighted_dimension)
 
