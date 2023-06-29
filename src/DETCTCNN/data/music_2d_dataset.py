@@ -77,6 +77,13 @@ class MUSIC2DDataset(Dataset):
         plt.imshow(image.squeeze(), cmap=plt.cm.Greys_r)
         plt.show()
 
+    def plot_segmentation(self, index):
+        data = self.segmentations[index]
+        data = data.astype(int).argmax(axis=0)
+        plt.imshow(data)
+        plt.colorbar()
+        plt.show()
+
     def get_classes(self):
         return self.classes
 
@@ -116,6 +123,5 @@ if __name__ == "__main__":
     argParser.add_argument("-d", "--dataset", help="dataset path", type=str, default="/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon/MUSIC2D_HDF5")
     args = argParser.parse_args()
     DATASET_PATH = args.dataset
-    print(DATASET_PATH)
     dataset = MUSIC2DDataset(root=DATASET_PATH,spectrum="reducedSpectrum",partition="valid")
-    print(np.asarray(dataset[:]["segmentation"]).shape)
+    dataset.plot_segmentation(0)
