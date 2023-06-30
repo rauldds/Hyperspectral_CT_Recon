@@ -14,10 +14,9 @@ def colorize_mask(mask, palette):
     new_mask.putpalette(palette)
     return new_mask
 
-def image_from_segmentation(prediction,no_classes):
+def image_from_segmentation(prediction,no_classes, palette):
+    palette = np.array(palette)
 	# Saves the image, the model output and the results after the post processing
-    palette = np.rint(np.array(sns.color_palette('hls', no_classes-1)) * 255)
-    palette = np.insert(palette, 0, [0,0,0], axis=0)
     mask = prediction.argmax(1).numpy().squeeze()
     colored_image = palette[mask]
     colored_image = colored_image.astype(np.uint8)

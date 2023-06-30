@@ -6,7 +6,7 @@ import torchvision
 from torch.utils.tensorboard import SummaryWriter
 
 
-from src.DETCTCNN.data.music_2d_labels import MUSIC_2D_LABELS
+from src.DETCTCNN.data.music_2d_labels import MUSIC_2D_LABELS, MUSIC_2D_PALETTE
 from src.DETCTCNN.augmentations.augmentations import AddGaussianNoise
 from  src.DETCTCNN.data import music_2d_dataset
 from src.DETCTCNN.model.utils import class_weights, image_from_segmentation
@@ -80,7 +80,7 @@ def main(hparams):
                 }, "model.pt")
 
             tb.add_scalar("Loss", running_loss, epoch)
-            tb.add_image(tag="Prediction" + str(i), global_step=len(train_loader)*epoch+i, img_tensor=image_from_segmentation(y_hat, LABELS_SIZE))
+            tb.add_image(tag="Prediction" + str(i), global_step=len(train_loader)*epoch+i, img_tensor=image_from_segmentation(y_hat, LABELS_SIZE, MUSIC_2D_PALETTE))
             print('(Epoch: {} / {}) Loss: {}'.format(epoch + 1, hparams.epochs, running_loss / (1+(len(train_loader)*epoch+i))))
             # if i % 10 == 9: 
             #     tb.add_image(tag="Prediction" + str(i), global_step=len(train_loader)*epoch+i, img_tensor=image_from_segmentation(y_hat, LABELS_SIZE))
