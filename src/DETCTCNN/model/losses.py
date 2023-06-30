@@ -6,7 +6,7 @@ def dice_loss(input, target, smooth=1.):
     tflat = target.view(-1).float()
     intersection = (iflat * tflat).sum()
 
-    return 1 - ((2. * intersection + smooth)/(iflat.sum() + tflat.sum() + smooth))
+    return 1 - ((2. * intersection + smooth)/((iflat * iflat).sum() + (tflat * tflat).sum() + smooth))
 
 def weighted_loss(input, target, weights, loss_func, weighted_dimension=1):
     losses = torch.zeros(input.shape[weighted_dimension])
