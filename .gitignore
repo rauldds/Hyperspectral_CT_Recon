@@ -53,3 +53,8 @@ coverage.xml
 # Sphinx documentation
 docs/_build/
 *__pycache__/
+*.jpeg
+*.jpg
+*.pt
+.idea/
+*.xml

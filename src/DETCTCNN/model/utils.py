@@ -26,6 +26,18 @@ def image_from_segmentation(prediction,no_classes, palette):
     colored_image = colored_image.reshape(3, mask.shape[0], mask.shape[1])
     return colored_image
 
+def plot_segmentation(segmentation, palette):
+    palette = np.array(palette)
+	# Saves the image, the model output and the results after the post processing
+    mask = segmentation.argmax(1).numpy().squeeze()
+    colored_image = palette[mask]
+    colored_image = colored_image.astype(np.uint8)
+    to_save = colored_image.reshape(mask.shape[0], mask.shape[1], 3)
+    im = Image.fromarray(to_save)
+    im.save("segmentation.jpeg")
+    colored_image = colored_image.reshape(3, mask.shape[0], mask.shape[1])
+    return colored_image
+
 
 def class_frequencies(dataset, n_classes):
     """ Calculates the loss weights of a dataset"""

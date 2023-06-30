@@ -9,7 +9,7 @@ from torch.utils.tensorboard import SummaryWriter
 from src.DETCTCNN.data.music_2d_labels import MUSIC_2D_LABELS, MUSIC_2D_PALETTE
 from src.DETCTCNN.augmentations.augmentations import AddGaussianNoise
 from  src.DETCTCNN.data import music_2d_dataset
-from src.DETCTCNN.model.utils import class_weights, image_from_segmentation
+from src.DETCTCNN.model.utils import class_weights, image_from_segmentation, plot_segmentation
 MUSIC2DDataset = music_2d_dataset.MUSIC2DDataset
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -49,7 +49,13 @@ def main(hparams):
 
     for epoch in range(hparams.epochs):  # loop over the dataset multiple times
 
-        loss_criterion = WeightedLoss(weights=dice_weights, loss_func=dice_loss ).to(device)
+        loss_criterion = None
+        if hparams.loss == "ce":
+            # Use Weighted Cross Entropy
+            loss_criterion = torch.nn.CrossEntropyLoss(weight=dice_weights).to(device)
+        else:
+            # Use Weighted Dice Loss
+            loss_criterion = WeightedLoss(weights=dice_weights, loss_func=dice_loss).to(device)
         running_loss = 0.0
         for i, data in enumerate(train_loader, 0):
             # get the inputs; data is a list of [inputs, labels]
@@ -61,7 +67,9 @@ def main(hparams):
 
             # Forward Pass
             y_hat = model(X.type(torch.DoubleTensor))
-            loss = loss_criterion(y_hat, y)
+            loss = loss_criterion(y_hat.type(torch.FloatTensor), y.type(torch.FloatTensor))
+            print(torch.unique(y_hat.argmax(1), return_counts=True))
+            print(torch.unique(y_hat.argmax(1), return_counts=True))
 
             # backward pass
             loss.backward()
@@ -79,12 +87,12 @@ def main(hparams):
                     "loss": running_loss
                 }, "model.pt")
 
-            tb.add_scalar("Loss", running_loss, epoch)
-            tb.add_image(tag="Prediction" + str(i), global_step=len(train_loader)*epoch+i, img_tensor=image_from_segmentation(y_hat, LABELS_SIZE, MUSIC_2D_PALETTE))
-            print('(Epoch: {} / {}) Loss: {}'.format(epoch + 1, hparams.epochs, running_loss / (1+(len(train_loader)*epoch+i))))
-            # if i % 10 == 9: 
-            #     tb.add_image(tag="Prediction" + str(i), global_step=len(train_loader)*epoch+i, img_tensor=image_from_segmentation(y_hat, LABELS_SIZE))
-                # print('(Epoch: {} / {}) Loss: {}'.format(epoch + 1, hparams.epochs, running_loss / (len(train_loader)*epoch+i)))
+            # tb.add_scalar("Loss", running_loss, epoch)
+            # tb.add_image(tag="Prediction" + str(i), global_step=len(train_loader)*epoch+i, img_tensor=image_from_segmentation(y_hat, LABELS_SIZE, MUSIC_2D_PALETTE))
+            # print('(Epoch: {} / {}) Loss: {}'.format(epoch + 1, hparams.epochs, running_loss / (1+(len(train_loader)*epoch+i))))
+            if i % 10 == 9: 
+                tb.add_image(tag="Prediction" + str(i), global_step=len(train_loader)*epoch+i, img_tensor=image_from_segmentation(y_hat, LABELS_SIZE))
+                print('(Epoch: {} / {}) Loss: {}'.format(epoch + 1, hparams.epochs, running_loss / (len(train_loader)*epoch+i)))
 
 
 
@@ -94,6 +102,7 @@ if __name__ == "__main__":
     parser.add_argument("-e", "--epochs", type=int, default=700, help="Number of maximum training epochs")
     parser.add_argument("-bs", "--batch_size", type=int, default=1, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
-    parser.add_argument("-lr", "--learning_rate", type=int, default=0.00003, help="Learning rate")
+    parser.add_argument("-lr", "--learning_rate", type=int, default=0.0005, help="Learning rate")
+    parser.add_argument("-loss", "--loss", type=str, default="ce", help="Loss function")
     args = parser.parse_args()
     main(args)
