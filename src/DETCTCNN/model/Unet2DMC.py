@@ -29,6 +29,7 @@ class DecoderBlock(nn.Module):
 		# initialize the number of channels, upsampler blocks, and
 		# decoder blocks
 		self.channels = channels
+		self.dropout = nn.Dropout()
 		self.upconvs = nn.ModuleList(
 			[nn.ConvTranspose2d(channels[i], channels[i + 1], 2, 2)
 			 	for i in range(len(channels) - 1)])
@@ -36,9 +37,9 @@ class DecoderBlock(nn.Module):
 			[ConvBlock(channels[i], channels[i + 1])
 			 	for i in range(len(channels) - 1)])
 		# # Missing one conv block
-		# self.dec_blocks_2 = nn.ModuleList(
-		# 	[ConvBlock(channels[i+1], channels[i + 1])
-		# 	 	for i in range(len(channels) - 1)])
+		self.dec_blocks_2 = nn.ModuleList(
+			[ConvBlock(channels[i+1], channels[i + 1])
+			 	for i in range(len(channels) - 1)])
 
 	def forward(self, x, connections):
 		for i in range(len(self.channels) - 1):
@@ -46,7 +47,8 @@ class DecoderBlock(nn.Module):
 			x = self.upconvs[i](x)
 			x = torch.cat([x, connections[i]], dim=1)
 			x = self.dec_blocks[i](x)
-			# x = self.dec_blocks_2[i](x)
+			x = self.dropout(x)
+			x = self.dec_blocks_2[i](x)
 		return x
 
 # Basic out channel is a multiplier
