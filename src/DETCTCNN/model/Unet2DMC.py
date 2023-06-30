@@ -10,7 +10,7 @@ class EncoderBlock(nn.Module):
 		super().__init__()
 		self.channels = channels
 		self.encBlocks = nn.ModuleList(
-			[ConvBlock(channels[i], channels[i + 1])
+			[ConvBlock(channels[i], channels[i + 1], use_bn=True)
 			 	for i in range(len(channels) - 1)])
 		self.pool = nn.MaxPool2d(2)
 
@@ -34,11 +34,11 @@ class DecoderBlock(nn.Module):
 			[nn.ConvTranspose2d(channels[i], channels[i + 1], 2, 2)
 			 	for i in range(len(channels) - 1)])
 		self.dec_blocks = nn.ModuleList(
-			[ConvBlock(channels[i], channels[i + 1])
+			[ConvBlock(channels[i], channels[i + 1], use_bn=True)
 			 	for i in range(len(channels) - 1)])
 		# # Missing one conv block
 		self.dec_blocks_2 = nn.ModuleList(
-			[ConvBlock(channels[i+1], channels[i + 1])
+			[ConvBlock(channels[i+1], channels[i + 1], use_bn=True)
 			 	for i in range(len(channels) - 1)])
 
 	def forward(self, x, connections):
