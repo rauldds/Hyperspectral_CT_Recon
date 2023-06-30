@@ -29,7 +29,7 @@ class DecoderBlock(nn.Module):
 		# initialize the number of channels, upsampler blocks, and
 		# decoder blocks
 		self.channels = channels
-		self.dropout = nn.Dropout()
+		self.dropout = [nn.Dropout() for i in range(len(channels) - 1)]
 		self.upconvs = nn.ModuleList(
 			[nn.ConvTranspose2d(channels[i], channels[i + 1], 2, 2)
 			 	for i in range(len(channels) - 1)])
@@ -47,7 +47,7 @@ class DecoderBlock(nn.Module):
 			x = self.upconvs[i](x)
 			x = torch.cat([x, connections[i]], dim=1)
 			x = self.dec_blocks[i](x)
-			x = self.dropout(x)
+			x = self.dropout[i](x)
 			x = self.dec_blocks_2[i](x)
 		return x
 
