@@ -9,6 +9,7 @@ import numpy as np
 import argparse
 # from music_2d_labels import MUSIC_2D_LABELS
 from  src.DETCTCNN.data.music_2d_labels import MUSIC_2D_LABELS
+import torch
 
 class Dataset(ABC):
     def __init__(self, root, transform, partition, spectrum):
@@ -46,40 +47,38 @@ class MUSIC2DDataset(Dataset):
     def _get_image(self,index):
         image = self.images[index]
         if self.transform is not None:
+            image = image.unsqueeze(-1)
             image = self.transform(image)
+            image = image.squeeze(-1)
         return image
 
     def _get_segmentation(self,index):
         segmentation = self.segmentations[index]
         if self.transform is not None:
+            segmentation = segmentation.unsqueeze(-1)
             segmentation = self.transform(segmentation)
+            segmentation = segmentation.squeeze(-1)
         return segmentation
     
     def _get_classes(self, segmentation):
-        uniques = np.unique(segmentation)
-        #classes = []
-        #for label in MUSIC_2D_LABELS:
-        #    if MUSIC_2D_LABELS[label] in uniques:
-        #        classes.append(label)
+        uniques = torch.unique(segmentation.argmax(0))
         return uniques
 
     def __getitem__(self, index):
         image = self._get_image(index=index)
         segmentation = self._get_segmentation(index=index) 
         classes = self._get_classes(segmentation)
-        if self.transform is not None:
-            image = self.transform(image)
         return {"image": image, "segmentation": segmentation, "classes":classes}
     
     def plot_item(self,index, rad_val):
-        image = self.images[index].squeeze()[:,:,rad_val]
+        image = self.images[index].squeeze()[rad_val]
         plt.title("Reconstruction\nFiltered back projection")
         plt.imshow(image.squeeze(), cmap=plt.cm.Greys_r)
         plt.show()
 
     def plot_segmentation(self, index):
         data = self.segmentations[index]
-        data = data.astype(int).argmax(axis=0)
+        data = data.argmax(axis=0)
         plt.imshow(data)
         plt.colorbar()
         plt.show()
@@ -111,11 +110,13 @@ class MUSIC2DDataset(Dataset):
                 data = np.array(f['data']['value'], order='F')
                 if self.spectrum=="fullSpectrum":
                     data = data.squeeze(1)
+                data = torch.from_numpy(data).float()
                 self.images.append(data)
                 reconstruction_file.close()
             with segmentation_file as f:
                 data = np.array(f['data']['value'], order='F')
-                self.segmentations.append(data.astype(int))
+                data = torch.from_numpy(data).float()
+                self.segmentations.append(data)
                 segmentation_file.close()
 
 if __name__ == "__main__":
@@ -124,4 +125,4 @@ if __name__ == "__main__":
     args = argParser.parse_args()
     DATASET_PATH = args.dataset
     dataset = MUSIC2DDataset(root=DATASET_PATH,spectrum="reducedSpectrum",partition="valid")
-    dataset.plot_segmentation(0)
+    print(dataset[0])

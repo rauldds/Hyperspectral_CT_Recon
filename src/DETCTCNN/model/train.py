@@ -13,6 +13,7 @@ from src.DETCTCNN.model.utils import class_weights, image_from_segmentation, plo
 MUSIC2DDataset = music_2d_dataset.MUSIC2DDataset
 from torch.utils.data import DataLoader
 from torchvision import transforms
+import torchio as tio
 
 LABELS_SIZE = len(MUSIC_2D_LABELS)
 
@@ -22,17 +23,14 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def main(hparams):
     
     # Initialize Transformations
-    # transform = transforms.Compose([
-    #     transforms.RandomHorizontalFlip(),
-    #     transforms.RandomVerticalFlip(),
-        # transforms.RandomAffine(degrees=20),
-        # transforms.RandomResizedCrop(),
-    #     AddGaussianNoise(),
-    #     transforms.ToTensor()
-    # ])
+    transform = tio.Compose([
+        tio.RandomFlip(axes=(1,2)),
+        tio.RandomNoise(std=(0,0.05)),
+        tio.RandomElasticDeformation(max_displacement=20),
+    ])
 
     
-    transform = None
+    # transform = None
     dataset = MUSIC2DDataset(root=hparams.data_root,partition="valid",spectrum="reducedSpectrum", transform=transform)
     train_loader = DataLoader(dataset, batch_size=hparams.batch_size)
 
@@ -41,7 +39,6 @@ def main(hparams):
 
 
     model = get_model(input_channels=10, n_labels=hparams.n_labels, use_bn=True)
-    model.type(torch.DoubleTensor)
     
     optimizer = torch.optim.Adam(model.parameters(), betas=([0.9, 0.999]), lr = hparams.learning_rate)
 
@@ -59,17 +56,15 @@ def main(hparams):
         running_loss = 0.0
         for i, data in enumerate(train_loader, 0):
             # get the inputs; data is a list of [inputs, labels]
-            X, y  = data['image'].type(torch.FloatTensor), data['segmentation']
+            X, y  = data['image'], data['segmentation']
             X = X.to(device)
             y = y.to(device)
             
             optimizer.zero_grad()
 
             # Forward Pass
-            y_hat = model(X.type(torch.DoubleTensor))
-            loss = loss_criterion(y_hat.type(torch.FloatTensor), y.type(torch.FloatTensor))
-            print(torch.unique(y_hat.argmax(1), return_counts=True))
-            print(torch.unique(y_hat.argmax(1), return_counts=True))
+            y_hat = model(X)
+            loss = loss_criterion(y_hat, y)
 
             # backward pass
             loss.backward()
@@ -87,12 +82,12 @@ def main(hparams):
                     "loss": running_loss
                 }, "model.pt")
 
-            # tb.add_scalar("Loss", running_loss, epoch)
-            # tb.add_image(tag="Prediction" + str(i), global_step=len(train_loader)*epoch+i, img_tensor=image_from_segmentation(y_hat, LABELS_SIZE, MUSIC_2D_PALETTE))
-            # print('(Epoch: {} / {}) Loss: {}'.format(epoch + 1, hparams.epochs, running_loss / (1+(len(train_loader)*epoch+i))))
-            if i % 10 == 9: 
-                tb.add_image(tag="Prediction" + str(i), global_step=len(train_loader)*epoch+i, img_tensor=image_from_segmentation(y_hat, LABELS_SIZE))
-                print('(Epoch: {} / {}) Loss: {}'.format(epoch + 1, hparams.epochs, running_loss / (len(train_loader)*epoch+i)))
+            tb.add_scalar("Loss", running_loss, epoch)
+            tb.add_image(tag="Prediction" + str(i), global_step=len(train_loader)*epoch+i, img_tensor=image_from_segmentation(y_hat, LABELS_SIZE, MUSIC_2D_PALETTE))
+            print('(Epoch: {} / {}) Loss: {}'.format(epoch + 1, hparams.epochs, running_loss / (1+(len(train_loader)*epoch+i))))
+            # if i % 10 == 9: 
+            #     tb.add_image(tag="Prediction" + str(i), global_step=len(train_loader)*epoch+i, img_tensor=image_from_segmentation(y_hat, LABELS_SIZE))
+            #     print('(Epoch: {} / {}) Loss: {}'.format(epoch + 1, hparams.epochs, running_loss / (len(train_loader)*epoch+i)))
 
 
 
