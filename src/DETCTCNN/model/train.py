@@ -13,6 +13,7 @@ from src.DETCTCNN.model.utils import class_weights, image_from_segmentation, plo
 MUSIC2DDataset = music_2d_dataset.MUSIC2DDataset
 from torch.utils.data import DataLoader
 from torchvision import transforms
+import torchio as tio
 
 LABELS_SIZE = len(MUSIC_2D_LABELS)
 
@@ -22,17 +23,14 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def main(hparams):
     
     # Initialize Transformations
-    # transform = transforms.Compose([
-    #     transforms.RandomHorizontalFlip(),
-    #     transforms.RandomVerticalFlip(),
-    #     transforms.RandomAffine(degrees=20),
-    #     transforms.RandomResizedCrop(),
-    #     AddGaussianNoise(),
-    #     transforms.ToTensor()
-    # ])
+    transform = tio.Compose([
+        tio.RandomFlip(axes=(1,2)),
+        tio.RandomNoise(std=(0,0.05)),
+        tio.RandomElasticDeformation(max_displacement=20),
+    ])
 
     
-    transform = None
+    # transform = None
     dataset = MUSIC2DDataset(root=hparams.data_root,partition="valid",spectrum="reducedSpectrum", transform=transform)
     train_loader = DataLoader(dataset, batch_size=hparams.batch_size)
 

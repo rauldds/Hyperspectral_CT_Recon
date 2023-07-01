@@ -47,13 +47,17 @@ class MUSIC2DDataset(Dataset):
     def _get_image(self,index):
         image = self.images[index]
         if self.transform is not None:
+            image = image.unsqueeze(-1)
             image = self.transform(image)
+            image = image.squeeze(-1)
         return image
 
     def _get_segmentation(self,index):
         segmentation = self.segmentations[index]
         if self.transform is not None:
+            segmentation = segmentation.unsqueeze(-1)
             segmentation = self.transform(segmentation)
+            segmentation = segmentation.squeeze(-1)
         return segmentation
     
     def _get_classes(self, segmentation):
