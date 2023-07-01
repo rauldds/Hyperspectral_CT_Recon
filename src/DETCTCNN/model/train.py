@@ -25,8 +25,8 @@ def main(hparams):
     # transform = transforms.Compose([
     #     transforms.RandomHorizontalFlip(),
     #     transforms.RandomVerticalFlip(),
-        # transforms.RandomAffine(degrees=20),
-        # transforms.RandomResizedCrop(),
+    #     transforms.RandomAffine(degrees=20),
+    #     transforms.RandomResizedCrop(),
     #     AddGaussianNoise(),
     #     transforms.ToTensor()
     # ])
@@ -41,7 +41,6 @@ def main(hparams):
 
 
     model = get_model(input_channels=10, n_labels=hparams.n_labels, use_bn=True)
-    model.float()
     
     optimizer = torch.optim.Adam(model.parameters(), betas=([0.9, 0.999]), lr = hparams.learning_rate)
 
@@ -66,7 +65,7 @@ def main(hparams):
             optimizer.zero_grad()
 
             # Forward Pass
-            y_hat = model(X.float())
+            y_hat = model(X)
             loss = loss_criterion(y_hat, y)
 
             # backward pass

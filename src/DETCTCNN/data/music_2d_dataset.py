@@ -108,7 +108,7 @@ class MUSIC2DDataset(Dataset):
                 data = np.array(f['data']['value'], order='F')
                 if self.spectrum=="fullSpectrum":
                     data = data.squeeze(1)
-                    data = torch.from_numpy(data).float()
+                data = torch.from_numpy(data).float()
                 self.images.append(data)
                 reconstruction_file.close()
             with segmentation_file as f:
