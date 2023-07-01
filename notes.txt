@@ -23,3 +23,8 @@ Research Ideas:
 	- Less important: more complex loss functions for imbalance
 
 --------------------------------------------------------------------------------------------------------
+
+References
+
+[Unets] https://arxiv.org/pdf/1505.04597.pdf
+[Automatic Multi-organ segmentation] https://aapm.onlinelibrary.wiley.com/doi/epdf/10.1002/mp.13950
