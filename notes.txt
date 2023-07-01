@@ -28,3 +28,4 @@ References
 
 [Unets] https://arxiv.org/pdf/1505.04597.pdf
 [Automatic Multi-organ segmentation] https://aapm.onlinelibrary.wiley.com/doi/epdf/10.1002/mp.13950
+[Hyperspectral] https://arxiv.org/pdf/2303.08252v1.pdf
