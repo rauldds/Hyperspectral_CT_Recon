@@ -64,8 +64,6 @@ class MUSIC2DDataset(Dataset):
         image = self._get_image(index=index)
         segmentation = self._get_segmentation(index=index) 
         classes = self._get_classes(segmentation)
-        if self.transform is not None:
-            image = self.transform(image)
         return {"image": image, "segmentation": segmentation, "classes":classes}
     
     def plot_item(self,index, rad_val):
