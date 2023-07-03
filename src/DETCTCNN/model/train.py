@@ -105,8 +105,8 @@ def main(hparams):
             tb.add_scalar("Train_acc", train_accuracy, epoch)
 
             iteration = epoch * len(train_loader) + i
-            if iteration % 2 == (2 - 1):
-                print(f'[epoch: {epoch:03d}/iteration: {i :03d}] train_loss: {running_loss / 2 :.6f}, train_acc: {train_accuracy:.2f}%')
+            if iteration % hparams.print_every == (hparams.print_every - 1):
+                print(f'[epoch: {epoch:03d}/iteration: {i :03d}] train_loss: {running_loss / hparams.print_every :.6f}, train_acc: {train_accuracy:.2f}%')
                 running_loss = 0.
                 train_accuracy = 0.
 
@@ -116,7 +116,7 @@ def main(hparams):
             #     tb.add_image(tag="Prediction" + str(i), global_step=len(train_loader)*epoch+i, img_tensor=image_from_segmentation(y_hat, LABELS_SIZE))
             #     print('(Epoch: {} / {}) Loss: {}'.format(epoch + 1, hparams.epochs, running_loss / (len(train_loader)*epoch+i)))
 
-            if iteration % 10 == (10 - 1):
+            if iteration % hparams.validate_every == (hparams.validate_every - 1):
                 model.eval()
                 val_loss = 0.0
                 val_acc = 0.0
@@ -143,7 +143,8 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     # parser.add_argument("-dr", "--data_root", type=str, default="/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon/MUSIC2D_HDF5", help="Data root directory")
     parser.add_argument("-dr", "--data_root", type=str, default="/media/davidg-dl/Second SSD/MUSIC2D_HDF5", help="Data root directory")
-    parser.add_argument("-ve", "--validate_every", type=int, default=10, help="Validate after each # of epochs")
+    parser.add_argument("-ve", "--validate_every", type=int, default=10, help="Validate after each # of iterations")
+    parser.add_argument("-pe", "--print_every", type=int, default=2, help="print info after each # of epochs")
     parser.add_argument("-e", "--epochs", type=int, default=200, help="Number of maximum training epochs")
     parser.add_argument("-bs", "--batch_size", type=int, default=1, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
