@@ -58,3 +58,7 @@ docs/_build/
 *.pt
 .idea/
 *.xml
+
+src/DETCTCNN/model/runs/
+src/DETCTCNN/model/model.pt
+src/DETCTCNN/model/__pycache__/
