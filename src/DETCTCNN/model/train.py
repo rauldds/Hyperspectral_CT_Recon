@@ -2,12 +2,10 @@ from argparse import ArgumentParser
 from losses import WeightedLoss, DiceLoss, dice_loss
 from model import get_model
 import torch
-import torchvision
 from torch.utils.tensorboard import SummaryWriter
 
 
 from src.DETCTCNN.data.music_2d_labels import MUSIC_2D_LABELS, MUSIC_2D_PALETTE
-from src.DETCTCNN.augmentations.augmentations import AddGaussianNoise
 from  src.DETCTCNN.data import music_2d_dataset
 from src.DETCTCNN.model.utils import class_weights, image_from_segmentation, plot_segmentation
 MUSIC2DDataset = music_2d_dataset.MUSIC2DDataset
@@ -15,6 +13,8 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 import torchio as tio
 import torch.optim.lr_scheduler as lr_scheduler
+import torchmetrics
+import numpy as np
 
 LABELS_SIZE = len(MUSIC_2D_LABELS)
 
@@ -31,7 +31,6 @@ def calculate_accuracy(pred_tensor, target_tensor):
     # print(f"accuracy: {accuracy}%")
 
     return accuracy
-
 
 #TODO: Update training with dataloader
 def main(hparams):
@@ -64,6 +63,10 @@ def main(hparams):
 
     tb = SummaryWriter()
 
+
+    # Metric: IOU
+    jaccard = torchmetrics.JaccardIndex('multiclass', num_classes=LABELS_SIZE)
+
     for epoch in range(hparams.epochs):  # loop over the dataset multiple times
 
         loss_criterion = None
@@ -95,6 +98,7 @@ def main(hparams):
             # print statistics
             running_loss += loss.item()
             train_accuracy = calculate_accuracy(pred_tensor=y_hat, target_tensor=y)
+            train_iou = jaccard(y_hat.argmax(1), y.argmax(1)) * 100
 
             if epoch % 10 == 0:
                 torch.save({
@@ -106,13 +110,15 @@ def main(hparams):
 
             tb.add_scalar("Loss", running_loss, epoch)
             tb.add_scalar("Train_acc", train_accuracy, epoch)
+            tb.add_scalar("Train_IOU", train_iou, epoch)
 
             iteration = epoch * len(train_loader) + i
             if iteration % hparams.print_every == (hparams.print_every - 1):
                 image_from_segmentation(y_hat, LABELS_SIZE, MUSIC_2D_PALETTE, device=device)
-                print(f'[epoch: {epoch:03d}/iteration: {i :03d}] train_loss: {running_loss / hparams.print_every :.6f}, train_acc: {train_accuracy:.2f}%')
+                print(f'[epoch: {epoch:03d}/iteration: {i :03d}] train_loss: {running_loss / hparams.print_every :.6f}, train_acc: {train_accuracy:.2f}%, train_IOU: {train_iou:.2f}%')
                 running_loss = 0.
                 train_accuracy = 0.
+                train_iou = 0.
 
             # tb.add_image(tag="Prediction" + str(i), global_step=len(train_loader)*epoch+i, img_tensor=image_from_segmentation(y_hat, LABELS_SIZE, MUSIC_2D_PALETTE))
             #print('(Epoch: {} / {}) Train_Loss: {:.4f}, train_acc: {:.2f}%'.format(epoch + 1, hparams.epochs, running_loss / (1+(len(train_loader)*epoch+i)), train_accuracy / len(train_loader)))
@@ -124,6 +130,7 @@ def main(hparams):
                 model.eval()
                 val_loss = 0.0
                 val_acc = 0.0
+                val_iou = 0.0
                 for val_data in val_loader:
 
                     val_X, val_y = val_data["image"].to(device), val_data["segmentation"].to(device)
@@ -134,13 +141,16 @@ def main(hparams):
 
                     val_loss +=loss.item()
                     val_acc += calculate_accuracy(val_pred, val_y)
+                    val_iou += jaccard(y_hat.argmax(1), y.argmax(1))
 
                 val_loss /= len(val_loader)
                 val_acc /= len(val_loader)
+                val_iou /= len(val_loader)
 
                 tb.add_scalar("Val_Loss", val_loss, epoch)
                 tb.add_scalar("Val_Accuracy", val_acc, epoch)
-                print(f'[INFO-Validation][epoch: {epoch:03d}/iteration: {i :03d}] validation_loss: {val_loss:.6f}, validation_acc: {val_acc:.2f}%')
+                tb.add_scalar("Val_IOU", val_iou, epoch)
+                print(f'[INFO-Validation][epoch: {epoch:03d}/iteration: {i :03d}] validation_loss: {val_loss:.6f}, validation_acc: {val_acc:.2f}%, validation_IOU: {val_iou:.2f}%')
 
 
 if __name__ == "__main__":
