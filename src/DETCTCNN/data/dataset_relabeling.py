@@ -40,8 +40,6 @@ if "MUSIC2D" in DATASET_PATH:
             #print(channel.shape)
             channels.append(channel)
         channels = np.asarray(channels)
-        print(channels.shape)
-
         hf = h5py.File(DATASET_PATH+ "/"+folder+'/manualSegmentation/manualSegmentation_global.h5', 'w')
         g1 = hf.create_group('data')
         g1.create_dataset("value",data=channels)
@@ -50,10 +48,15 @@ elif "MUSIC3D" in DATASET_PATH:
     for folder in file_names:
         with h5py.File(DATASET_PATH+ "/"+folder+'/manualSegmentation/manualSegmentation.h5', 'r') as f:
             data = np.array(f['data']['value'], order='F')
-            print(data.shape)
         for (x, y, z), local_label in np.ndenumerate(data):
             data[x,y,z] = MUSIC_3D_SAMPLES[folder][local_label]
+        channels = []
+        for clas in range(len(MUSIC_2D_LABELS)):
+            channel = (data==clas)
+            #print(channel.shape)
+            channels.append(channel)
+        channels = np.transpose(np.asarray(channels),(1,0,2,3))
         hf = h5py.File(DATASET_PATH+ "/"+folder+'/manualSegmentation/manualSegmentation_global.h5', 'w')
         g1 = hf.create_group('data')
-        g1.create_dataset("value",data=data)
+        g1.create_dataset("value",data=channels)
         hf.close()
