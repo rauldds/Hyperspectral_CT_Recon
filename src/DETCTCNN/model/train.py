@@ -14,6 +14,7 @@ MUSIC2DDataset = music_2d_dataset.MUSIC2DDataset
 from torch.utils.data import DataLoader
 from torchvision import transforms
 import torchio as tio
+import torch.optim.lr_scheduler as lr_scheduler
 
 LABELS_SIZE = len(MUSIC_2D_LABELS)
 
@@ -57,7 +58,7 @@ def main(hparams):
 
 
     model = get_model(input_channels=10, n_labels=hparams.n_labels, use_bn=True)
-    model
+    model.type(torch.cuda.FloatTensor)
     
     optimizer = torch.optim.Adam(model.parameters(), betas=([0.9, 0.999]), lr = hparams.learning_rate)
 
@@ -77,7 +78,8 @@ def main(hparams):
         train_accuracy = 0.0
         for i, data in enumerate(train_loader, 0):
             # get the inputs; data is a list of [inputs, labels]
-            X, y  = data['image'], data['segmentation']
+            X, y  = data['image'].type(torch.cuda.FloatTensor), data['segmentation']
+            print(f"X shape: {X.shape}, y shape: {y.shape}")
             X = X.to(device)
             y = y.to(device)
             
@@ -93,7 +95,7 @@ def main(hparams):
 
             # print statistics
             running_loss += loss.item()
-            train_accuracy += calculate_accuracy(pred_tensor=y_hat, target_tensor=y)
+            train_accuracy = calculate_accuracy(pred_tensor=y_hat, target_tensor=y)
 
             if epoch % 10 == 0:
                 torch.save({
@@ -125,7 +127,7 @@ def main(hparams):
                 val_acc = 0.0
                 for val_data in val_loader:
 
-                    val_X, val_y = val_data["image"].to(device), val_data["segmentation"].to(device)
+                    val_X, val_y = val_data["image"].type(torch.cuda.FloatTensor).to(device), val_data["segmentation"].type(torch.cuda.FloatTensor).to(device)
 
                     with torch.no_grad():
                         val_pred = model(val_X)
@@ -148,8 +150,8 @@ if __name__ == "__main__":
     parser.add_argument("-dr", "--data_root", type=str, default="/media/davidg-dl/Second SSD/MUSIC2D_HDF5", help="Data root directory")
     parser.add_argument("-ve", "--validate_every", type=int, default=10, help="Validate after each # of iterations")
     parser.add_argument("-pe", "--print_every", type=int, default=2, help="print info after each # of epochs")
-    parser.add_argument("-e", "--epochs", type=int, default=200, help="Number of maximum training epochs")
-    parser.add_argument("-bs", "--batch_size", type=int, default=1, help="Batch size")
+    parser.add_argument("-e", "--epochs", type=int, default=10, help="Number of maximum training epochs")
+    parser.add_argument("-bs", "--batch_size", type=int, default=2, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
     parser.add_argument("-lr", "--learning_rate", type=int, default=0.0005, help="Learning rate")
     parser.add_argument("-loss", "--loss", type=str, default="ce", help="Loss function")
