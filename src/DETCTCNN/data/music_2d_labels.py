@@ -167,15 +167,15 @@ MUSIC_2D_SAMPLES = {
     },
     "sample19": {
             0: MUSIC_2D_LABELS["unlabelled"],
-            1: MUSIC_2D_LABELS["h2o"],
-            2: MUSIC_2D_LABELS["acetone"],
-            3: MUSIC_2D_LABELS["olive_oil"],
-            4: MUSIC_2D_LABELS["whiskey"],
+            1: MUSIC_2D_LABELS["olive_oil"],
+            2: MUSIC_2D_LABELS["garnier_fructis"],
+            3: MUSIC_2D_LABELS["hand_cream"],
+            4: MUSIC_2D_LABELS["brandy_chantre"],
             5: MUSIC_2D_LABELS["aluminium"],
     },
     "sample20": {
             0: MUSIC_2D_LABELS["unlabelled"],
-            1: MUSIC_2D_LABELS["olive_oil"],
+            1: MUSIC_2D_LABELS["h2o"],
             2: MUSIC_2D_LABELS["brandy_chantre"],
             3: MUSIC_2D_LABELS["whiskey"],
             4: MUSIC_2D_LABELS["hand_cream"],
@@ -245,3 +245,22 @@ MUSIC_3D_SAMPLES = {
                 4: MUSIC_2D_LABELS["methanol"]
         }
 }
+
+MUSIC_2D_PALETTE = [
+ [  0,   0,   0],
+ [219,  95,  87],
+ [219, 148,  87],
+ [219, 201,  87],
+ [185, 219,  87],
+ [132, 219,  87],
+ [ 87, 219,  95],
+ [ 87, 219, 148],
+ [ 87, 219, 201],
+ [ 87, 185, 219],
+ [ 87, 132, 219],
+ [ 95,  87, 219],
+ [148,  87, 219],
+ [201,  87, 219],
+ [219,  87, 185],
+ [219,  87, 132]
+]

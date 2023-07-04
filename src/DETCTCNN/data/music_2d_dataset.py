@@ -7,12 +7,14 @@ import h5py
 from matplotlib import pyplot as plt
 import numpy as np
 import argparse
-from music_2d_labels import MUSIC_2D_LABELS
-
+# from music_2d_labels import MUSIC_2D_LABELS
+from  src.DETCTCNN.data.music_2d_labels import MUSIC_2D_LABELS
+import torch
 
 class Dataset(ABC):
-    def __init__(self, root, partition,spectrum):
+    def __init__(self, root, transform, partition, spectrum):
         self.root_path = root
+        self.transform = transform
         self.partition = partition
         self.spectrum = spectrum
 
@@ -27,14 +29,12 @@ class Dataset(ABC):
 # Data shape is (100,100,1,128). This is 2D data with 128 channels!
 # TODO: Do we want to retrieve sinograms?
 class MUSIC2DDataset(Dataset):
-    def __init__(self, *args, root=None, partition="train",spectrum="fullSpectrum",**kwargs):
-        super().__init__(*args, root=root, partition=partition, spectrum=spectrum,
+    def __init__(self, *args, root=None, transform=None, partition="train", spectrum="fullSpectrum", **kwargs):
+        super().__init__(*args, root=root, transform=transform, partition=partition, spectrum=spectrum,
                             **kwargs)
         self.images = []
         self.classes = []
         self.segmentations = []
-        # If we need any transformations
-        self.transform = None
         #Collect all the class names
         for label in MUSIC_2D_LABELS:
             self.classes.append(label)
@@ -47,33 +47,43 @@ class MUSIC2DDataset(Dataset):
     def _get_image(self,index):
         image = self.images[index]
         if self.transform is not None:
+            image = image.unsqueeze(-1)
             image = self.transform(image)
+            image = image.squeeze(-1)
         return image
 
     def _get_segmentation(self,index):
         segmentation = self.segmentations[index]
+        if self.transform is not None:
+            segmentation = segmentation.unsqueeze(-1)
+            segmentation = self.transform(segmentation)
+            segmentation = segmentation.squeeze(-1)
         return segmentation
     
     def _get_classes(self, segmentation):
-        uniques = np.unique(segmentation)
-        #classes = []
-        #for label in MUSIC_2D_LABELS:
-        #    if MUSIC_2D_LABELS[label] in uniques:
-        #        classes.append(label)
-        return uniques
+        classes = torch.zeros((len(self.classes)))
+        # Do one hot encoding
+        uniques = torch.unique(segmentation.argmax(0))
+        classes[uniques] = 1
+        return classes
 
     def __getitem__(self, index):
         image = self._get_image(index=index)
         segmentation = self._get_segmentation(index=index) 
         classes = self._get_classes(segmentation)
-        if self.transform is not None:
-            image = self.transform(image)
         return {"image": image, "segmentation": segmentation, "classes":classes}
     
     def plot_item(self,index, rad_val):
-        image = self.images[index].squeeze()[:,:,rad_val]
+        image = self.images[index].squeeze()[rad_val]
         plt.title("Reconstruction\nFiltered back projection")
         plt.imshow(image.squeeze(), cmap=plt.cm.Greys_r)
+        plt.show()
+
+    def plot_segmentation(self, index):
+        data = self.segmentations[index]
+        data = data.argmax(axis=0)
+        plt.imshow(data)
+        plt.colorbar()
         plt.show()
 
     def get_classes(self):
@@ -103,19 +113,19 @@ class MUSIC2DDataset(Dataset):
                 data = np.array(f['data']['value'], order='F')
                 if self.spectrum=="fullSpectrum":
                     data = data.squeeze(1)
+                data = torch.from_numpy(data).float()
                 self.images.append(data)
                 reconstruction_file.close()
             with segmentation_file as f:
                 data = np.array(f['data']['value'], order='F')
-                self.segmentations.append(data.astype(int))
+                data = torch.from_numpy(data).float()
+                self.segmentations.append(data)
                 segmentation_file.close()
 
 if __name__ == "__main__":
-    #path = "/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon/MUSIC2D_HDF5"
     argParser = argparse.ArgumentParser()
-    argParser.add_argument("-d", "--dataset", help="dataset path", type=str)
+    argParser.add_argument("-d", "--dataset", help="dataset path", type=str, default="/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon/MUSIC2D_HDF5")
     args = argParser.parse_args()
     DATASET_PATH = args.dataset
-    dataset = MUSIC2DDataset(root=DATASET_PATH,spectrum="reducedSpectrum",partition="train")
-    print(dataset[15]["classes"])
-    #print(len(dataset[:]["segmentation"]))
+    dataset = MUSIC2DDataset(root=DATASET_PATH,spectrum="reducedSpectrum",partition="valid")
+    print(dataset[0])

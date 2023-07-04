@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-from layers import ConvBlock
+from src.DETCTCNN.model.layers3D import ConvBlock
 
 
 class EncoderBlock(nn.Module):
@@ -68,16 +68,18 @@ class Unet3DMC(nn.Module):
 		self.final = ConvBlock(basic_out_channel + 64 + 8, n_labels, kernel=(1, 1, 1))
 
 	def forward(self,x):
+		x = x.type(torch.DoubleTensor)
+		print(type(x))
 		out = x
 		init = self.init_conv(x)
 		
 		pre = self.pre_conv(x)
 		out = self.encoder(pre)
+		# Get last output for decoder and rest for unet connections
 		out = self.decoder(out[-1], out[::-1][1:] + [pre] )
 		out = torch.cat([out, pre, init], dim=1)
 		# Add other residual connections
 		out = self.final(out)
-		# TODO: This softmax dimension applied on dimension 1?
 		out = nn.functional.softmax(out,dim=1)
 		return out
 

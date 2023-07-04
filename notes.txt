@@ -1,0 +1,31 @@
+Hyperspectral/Material Dataset Challenges:
+
+	- Severely inbalanced (Mostly background)
+	- Object structure less important for predictions than "texture" (E.g: MUSIC_2D are petri dish samples, material has to be inferred from hyperspectral channels)
+
+--------------------------------------------------------------------------------------------------------
+Empirical Observations:
+
+	- Using regularization such as dropout and transformations helps predictions
+	- Using weighted loss is necessary due to class imbalance (MUSIC_2D: background is 90% of image)
+	- MUSIC_2D: Tests on dice loss shows that its convergence is not a good indicator of performance and seems to be suffering from vanishing gradients
+	- MUSIC_2D: Weighted cross entropy converges 
+	- Needs low learning rates (5x10^-5)
+	- U-NET architecture works greatly
+
+
+--------------------------------------------------------------------------------------------------------
+Research Ideas:
+
+	- Oversampling single objects to overcome imbalance
+	- Explore more augmentations
+	- Patchify data (related to 1)
+	- Less important: more complex loss functions for imbalance
+
+--------------------------------------------------------------------------------------------------------
+
+References
+
+[Unets] https://arxiv.org/pdf/1505.04597.pdf
+[Automatic Multi-organ segmentation] https://aapm.onlinelibrary.wiley.com/doi/epdf/10.1002/mp.13950
+[Hyperspectral] https://arxiv.org/pdf/2303.08252v1.pdf

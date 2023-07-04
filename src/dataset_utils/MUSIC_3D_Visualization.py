@@ -11,6 +11,10 @@ import os
 idx = 0
 step = 0
 
+def rotate_view(vis):
+    ctr = vis.get_view_control()
+    ctr.rotate(10.0, 0.0)
+
 def pointcloud_converter(data):
     '''Function to convert the segmented slices into a point cloud for 3D visualization'''
     points = []
@@ -64,7 +68,7 @@ def update_step(val):
     fig.canvas.draw_idle()
 
 argParser = argparse.ArgumentParser()
-argParser.add_argument("-d", "--dataset", help="dataset path", type=str)
+argParser.add_argument("-d", "--dataset", help="dataset path", type=str, default="../../MUSIC3D_HDF5")
 
 args = argParser.parse_args()
 print("DATASET PATH: %s" % args.dataset)
@@ -109,13 +113,16 @@ pcl = o3d.geometry.PointCloud()
 pcl.points = o3d.utility.Vector3dVector(points[:,:])
 pcl.colors = o3d.utility.Vector3dVector(point_colors)
 
-o3d.visualization.draw_geometries([pcl],
+'''o3d.visualization.draw_geometries([pcl],
                                   zoom=0.664,
                                   front=[-0.4761, -0.4698, -0.7434],
                                   lookat=[int(data.shape[0]/2), 
                                           int(data.shape[1]/2), 
                                           int(data.shape[2]/2)],
                                   up=[0.2304, -0.8825, 0.4101],
+                                  window_name="Manual Segmentation 3D Visualization")'''
+
+o3d.visualization.draw_geometries_with_animation_callback([pcl],rotate_view,
                                   window_name="Manual Segmentation 3D Visualization")
 
 
