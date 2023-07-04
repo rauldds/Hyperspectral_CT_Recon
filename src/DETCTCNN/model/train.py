@@ -58,7 +58,7 @@ def main(hparams):
 
 
     model = get_model(input_channels=10, n_labels=hparams.n_labels, use_bn=True)
-    model.type(torch.cuda.FloatTensor)
+    model.to(device=device)
     
     optimizer = torch.optim.Adam(model.parameters(), betas=([0.9, 0.999]), lr = hparams.learning_rate)
 
@@ -78,8 +78,7 @@ def main(hparams):
         train_accuracy = 0.0
         for i, data in enumerate(train_loader, 0):
             # get the inputs; data is a list of [inputs, labels]
-            X, y  = data['image'].type(torch.cuda.FloatTensor), data['segmentation']
-            print(f"X shape: {X.shape}, y shape: {y.shape}")
+            X, y  = data['image'], data['segmentation']
             X = X.to(device)
             y = y.to(device)
             
@@ -110,7 +109,7 @@ def main(hparams):
 
             iteration = epoch * len(train_loader) + i
             if iteration % hparams.print_every == (hparams.print_every - 1):
-                image_from_segmentation(y_hat, LABELS_SIZE, MUSIC_2D_PALETTE)
+                image_from_segmentation(y_hat, LABELS_SIZE, MUSIC_2D_PALETTE, device=device)
                 print(f'[epoch: {epoch:03d}/iteration: {i :03d}] train_loss: {running_loss / hparams.print_every :.6f}, train_acc: {train_accuracy:.2f}%')
                 running_loss = 0.
                 train_accuracy = 0.
@@ -127,7 +126,7 @@ def main(hparams):
                 val_acc = 0.0
                 for val_data in val_loader:
 
-                    val_X, val_y = val_data["image"].type(torch.cuda.FloatTensor).to(device), val_data["segmentation"].type(torch.cuda.FloatTensor).to(device)
+                    val_X, val_y = val_data["image"].to(device), val_data["segmentation"].to(device)
 
                     with torch.no_grad():
                         val_pred = model(val_X)
@@ -146,8 +145,8 @@ def main(hparams):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    # parser.add_argument("-dr", "--data_root", type=str, default="/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon/MUSIC2D_HDF5", help="Data root directory")
-    parser.add_argument("-dr", "--data_root", type=str, default="/media/davidg-dl/Second SSD/MUSIC2D_HDF5", help="Data root directory")
+    parser.add_argument("-dr", "--data_root", type=str, default="/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon/MUSIC2D_HDF5", help="Data root directory")
+    # parser.add_argument("-dr", "--data_root", type=str, default="/media/davidg-dl/Second SSD/MUSIC2D_HDF5", help="Data root directory")
     parser.add_argument("-ve", "--validate_every", type=int, default=10, help="Validate after each # of iterations")
     parser.add_argument("-pe", "--print_every", type=int, default=2, help="print info after each # of epochs")
     parser.add_argument("-e", "--epochs", type=int, default=10, help="Number of maximum training epochs")

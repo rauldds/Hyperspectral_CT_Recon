@@ -61,8 +61,11 @@ class MUSIC2DDataset(Dataset):
         return segmentation
     
     def _get_classes(self, segmentation):
+        classes = torch.zeros((len(self.classes)))
+        # Do one hot encoding
         uniques = torch.unique(segmentation.argmax(0))
-        return uniques
+        classes[uniques] = 1
+        return classes
 
     def __getitem__(self, index):
         image = self._get_image(index=index)
