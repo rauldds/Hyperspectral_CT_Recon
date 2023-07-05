@@ -1,36 +1,33 @@
 import torch
 import torch.nn as nn
 
-def dice_loss(input, target, smooth=1.):
-    iflat = input.view(-1).float()
-    tflat = target.view(-1).float()
-    intersection = (iflat * tflat).sum()
-
-    return 1 - ((2. * intersection + smooth)/((iflat * iflat).sum() + (tflat * tflat).sum() + smooth))
-
-def weighted_loss(input, target, weights, loss_func, weighted_dimension=1):
-    losses = torch.zeros(input.shape[weighted_dimension])
-    for index in range(input.shape[weighted_dimension]):
-        x = input.select(dim=weighted_dimension, index=index)
-        y = target.select(dim=weighted_dimension, index=index)
-        losses[index] = loss_func(x, y)
-    return torch.mean(weights * losses)
-
-class WeightedLoss(nn.Module):
-    def __init__(self, weights, loss_func, weighted_dimension=1):
-        super(WeightedLoss, self).__init__()
-        self.weights = weights
-        self.loss_func = loss_func
-        self.weighted_dimension = weighted_dimension
-
-    def forward(self, input, target):
-        return weighted_loss(input=input, target=target, weights=self.weights, loss_func=self.loss_func,
-                             weighted_dimension=self.weighted_dimension)
-
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class DiceLoss(nn.Module):
-    def __init__(self, weight=None, size_average=True):
+    """Dice Loss PyTorch
+    Args:
+        weight: An array of shape [C,]
+        predict: A float32 tensor of shape [N, C, *], for Semantic segmentation task is [N, C, H, W]
+        target: A int64 tensor of shape [N, *], for Semantic segmentation task is [N, H, W]
+    Return:
+        diceloss
+    """
+    def __init__(self, weight=None):
         super(DiceLoss, self).__init__()
+        if weight is not None:
+            weight = torch.Tensor(weight)
+            self.weight = weight
+        self.smooth = 1e-5
 
-    def forward(self, inputs, targets, smooth=1):
-        return dice_loss(inputs, targets, smooth)
+    def forward(self, predict, target):
+        C = predict.shape[1]
+        intersection = torch.sum(predict * target, dim=(2,3))  # (N, C)
+        union = torch.sum(predict.pow(2), dim=(2,3)) + torch.sum(target, dim=(2,3))  # (N, C)
+        ## p^2 + t^2 >= 2*p*t, target_onehot^2 == target_onehot
+        dice_coef = (2 * intersection + self.smooth) / (union + self.smooth)  # (N, C)
+
+        if hasattr(self, 'weight'):
+                dice_coef = dice_coef * self.weight * C  # (N, C)
+        dice_loss = 1 - torch.mean(dice_coef)  # 1
+
+        return dice_loss

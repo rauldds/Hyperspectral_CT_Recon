@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from losses import WeightedLoss, DiceLoss, dice_loss
+from losses import DiceLoss
 from model import get_model
 import torch
 from torch.utils.tensorboard import SummaryWriter
@@ -72,7 +72,7 @@ def main(hparams):
         loss_criterion = torch.nn.CrossEntropyLoss(weight=dice_weights).to(device)
     else:
         # Use Weighted Dice Loss
-        loss_criterion = WeightedLoss(weights=dice_weights, loss_func=dice_loss).to(device)
+        loss_criterion = DiceLoss(weight=dice_weights).to(device)
 
     for epoch in range(hparams.epochs):  # loop over the dataset multiple times
 
