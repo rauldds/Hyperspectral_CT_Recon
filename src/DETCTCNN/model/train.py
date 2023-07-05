@@ -44,10 +44,10 @@ def main(hparams):
 
     
     # transform = None
-    train_dataset = MUSIC2DDataset(root=hparams.data_root,partition="train",spectrum="reducedSpectrum", transform=transform)
+    train_dataset = MUSIC2DDataset(path2d=hparams.data_root, path3d=None,partition="train",spectrum="reducedSpectrum", transform=transform)
     train_loader = DataLoader(train_dataset, batch_size=hparams.batch_size)
 
-    val_dataset = MUSIC2DDataset(root=hparams.data_root, partition="valid", spectrum="reducedSpectrum", transform=transform)
+    val_dataset = MUSIC2DDataset(path2d=hparams.data_root, path3d=None, partition="valid", spectrum="reducedSpectrum", transform=transform)
     val_loader = DataLoader(val_dataset)
 
 
@@ -66,16 +66,16 @@ def main(hparams):
 
     # Metric: IOU
     jaccard = torchmetrics.JaccardIndex('multiclass', num_classes=LABELS_SIZE)
+    loss_criterion = None
+    if hparams.loss == "ce":
+        # Use Weighted Cross Entropy
+        loss_criterion = torch.nn.CrossEntropyLoss(weight=dice_weights).to(device)
+    else:
+        # Use Weighted Dice Loss
+        loss_criterion = WeightedLoss(weights=dice_weights, loss_func=dice_loss).to(device)
 
     for epoch in range(hparams.epochs):  # loop over the dataset multiple times
 
-        loss_criterion = None
-        if hparams.loss == "ce":
-            # Use Weighted Cross Entropy
-            loss_criterion = torch.nn.CrossEntropyLoss(weight=dice_weights).to(device)
-        else:
-            # Use Weighted Dice Loss
-            loss_criterion = WeightedLoss(weights=dice_weights, loss_func=dice_loss).to(device)
 
         running_loss = 0.0
         train_accuracy = 0.0
@@ -159,10 +159,10 @@ if __name__ == "__main__":
     # parser.add_argument("-dr", "--data_root", type=str, default="/media/davidg-dl/Second SSD/MUSIC2D_HDF5", help="Data root directory")
     parser.add_argument("-ve", "--validate_every", type=int, default=10, help="Validate after each # of iterations")
     parser.add_argument("-pe", "--print_every", type=int, default=2, help="print info after each # of epochs")
-    parser.add_argument("-e", "--epochs", type=int, default=10, help="Number of maximum training epochs")
-    parser.add_argument("-bs", "--batch_size", type=int, default=2, help="Batch size")
+    parser.add_argument("-e", "--epochs", type=int, default=700, help="Number of maximum training epochs")
+    parser.add_argument("-bs", "--batch_size", type=int, default=4, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
-    parser.add_argument("-lr", "--learning_rate", type=int, default=0.0005, help="Learning rate")
+    parser.add_argument("-lr", "--learning_rate", type=int, default=0.00005, help="Learning rate")
     parser.add_argument("-loss", "--loss", type=str, default="ce", help="Loss function")
     args = parser.parse_args()
     main(args)
