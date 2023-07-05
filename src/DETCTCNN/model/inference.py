@@ -15,11 +15,11 @@ def main(args):
     dataset = MUSIC2DDataset(path2d=args.data_root, path3d=None, 
                             spectrum=args.spectrum, partition="valid",
                             full_dataset=False)
-    model = get_model(input_channels=INPUT_CHANNELS [args.spectrum], n_labels=args.n_labels,use_bn=True)
-    checkpoint = torch.load("./src/DETCTCNN/model/model.pt")
+    model = get_model(input_channels=INPUT_CHANNELS[args.spectrum], n_labels=args.n_labels,use_bn=True)
+    checkpoint = torch.load("model.pt", map_location=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     model.load_state_dict(checkpoint['model_state_dict'])
     
-    dataset = torch.from_numpy(np.asarray(dataset[2]["image"])).view((1,10,100,100))
+    dataset = dataset[1]["image"].unsqueeze(0)
     
     palette = np.array(MUSIC_2D_PALETTE)
 
