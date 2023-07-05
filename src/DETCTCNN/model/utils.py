@@ -21,7 +21,7 @@ def image_from_segmentation(prediction,no_classes, palette, device):
 	    # Saves the image, the model output and the results after the post processing
         if device == 'cuda':
             cur_pred = cur_pred.detach().cpu()
-        mask = cur_pred.argmax(1).numpy().squeeze()
+        mask = cur_pred.detach().cpu().argmax(1).numpy().squeeze()
         colored_image = palette[mask]
         colored_image = colored_image.astype(np.uint8)
         to_save = colored_image.reshape(mask.shape[0], mask.shape[1], 3)
