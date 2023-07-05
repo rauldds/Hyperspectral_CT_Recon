@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from losses import DiceLoss
+from losses import DiceLoss, CEDiceLoss
 from model import get_model
 import torch
 from torch.utils.tensorboard import SummaryWriter
@@ -70,9 +70,11 @@ def main(hparams):
     if hparams.loss == "ce":
         # Use Weighted Cross Entropy
         loss_criterion = torch.nn.CrossEntropyLoss(weight=dice_weights).to(device)
-    else:
+    elif hparams.loss == "dice":
         # Use Weighted Dice Loss
         loss_criterion = DiceLoss(weight=dice_weights).to(device)
+    else: # Use both losses
+        loss_criterion = CEDiceLoss(weight=dice_weights).to(device)
 
     for epoch in range(hparams.epochs):  # loop over the dataset multiple times
 
@@ -162,7 +164,7 @@ if __name__ == "__main__":
     parser.add_argument("-e", "--epochs", type=int, default=700, help="Number of maximum training epochs")
     parser.add_argument("-bs", "--batch_size", type=int, default=4, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
-    parser.add_argument("-lr", "--learning_rate", type=int, default=0.00005, help="Learning rate")
-    parser.add_argument("-loss", "--loss", type=str, default="ce", help="Loss function")
+    parser.add_argument("-lr", "--learning_rate", type=int, default=0.0005, help="Learning rate")
+    parser.add_argument("-loss", "--loss", type=str, default="both", help="Loss function")
     args = parser.parse_args()
     main(args)

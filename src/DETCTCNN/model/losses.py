@@ -31,3 +31,17 @@ class DiceLoss(nn.Module):
         dice_loss = 1 - torch.mean(dice_coef)  # 1
 
         return dice_loss
+    
+class CEDiceLoss(nn.Module):
+    def __init__(self, weight=None, ce_weight = 0.8):
+        super(CEDiceLoss, self).__init__()
+        if weight is not None:
+            weight = torch.Tensor(weight)
+            self.weight = weight
+        self.smooth = 1e-5
+        self.ce = torch.nn.CrossEntropyLoss(weight=weight)
+        self.dice = DiceLoss(weight=weight)
+        self.w = ce_weight
+
+    def forward(self, predict, target):
+         return (self.w) * self.ce(predict, target) + (1-self.w) * self.dice(predict, target)
