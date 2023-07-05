@@ -164,7 +164,7 @@ if __name__ == "__main__":
     parser.add_argument("-e", "--epochs", type=int, default=700, help="Number of maximum training epochs")
     parser.add_argument("-bs", "--batch_size", type=int, default=4, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
-    parser.add_argument("-lr", "--learning_rate", type=int, default=0.0005, help="Learning rate")
+    parser.add_argument("-lr", "--learning_rate", type=int, default=0.0001, help="Learning rate")
     parser.add_argument("-loss", "--loss", type=str, default="both", help="Loss function")
     args = parser.parse_args()
     main(args)
