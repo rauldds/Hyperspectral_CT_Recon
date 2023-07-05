@@ -38,7 +38,7 @@ def main(hparams):
     # Initialize Transformations
     transform = tio.Compose([
         tio.RandomFlip(axes=(1,2)),
-        tio.RandomNoise(std=(0,0.05)),
+        # tio.RandomNoise(std=(0,0.05)),
         # tio.RandomElasticDeformation(max_displacement=20),
     ])
 
@@ -53,10 +53,11 @@ def main(hparams):
 
     dice_weights = class_weights(dataset=train_dataset, n_classes=len(MUSIC_2D_LABELS))
     # Check dice weights used to weight loss function
+    dice_weights = dice_weights.float().to(device=device)
     print(dice_weights)
 
 
-    model = get_model(input_channels=10, n_labels=hparams.n_labels, use_bn=True)
+    model = get_model(input_channels=10, n_labels=hparams.n_labels, use_bn=True, basic_out_channel=2*64)
     model.to(device=device)
     
     optimizer = torch.optim.Adam(model.parameters(), betas=([0.9, 0.999]), lr = hparams.learning_rate)
@@ -65,7 +66,7 @@ def main(hparams):
 
 
     # Metric: IOU
-    jaccard = torchmetrics.JaccardIndex('multiclass', num_classes=LABELS_SIZE)
+    jaccard = torchmetrics.JaccardIndex('multiclass', num_classes=LABELS_SIZE).to(device=device)
     loss_criterion = None
     if hparams.loss == "ce":
         # Use Weighted Cross Entropy
@@ -74,7 +75,7 @@ def main(hparams):
         # Use Weighted Dice Loss
         loss_criterion = DiceLoss(weight=dice_weights).to(device)
     else: # Use both losses
-        loss_criterion = CEDiceLoss(weight=dice_weights).to(device)
+        loss_criterion = CEDiceLoss(weight=dice_weights, ce_weight=0.2).to(device)
 
     for epoch in range(hparams.epochs):  # loop over the dataset multiple times
 
@@ -160,11 +161,11 @@ if __name__ == "__main__":
     parser.add_argument("-dr", "--data_root", type=str, default="/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon/MUSIC2D_HDF5", help="Data root directory")
     # parser.add_argument("-dr", "--data_root", type=str, default="/media/davidg-dl/Second SSD/MUSIC2D_HDF5", help="Data root directory")
     parser.add_argument("-ve", "--validate_every", type=int, default=10, help="Validate after each # of iterations")
-    parser.add_argument("-pe", "--print_every", type=int, default=2, help="print info after each # of epochs")
+    parser.add_argument("-pe", "--print_every", type=int, default=10, help="print info after each # of epochs")
     parser.add_argument("-e", "--epochs", type=int, default=700, help="Number of maximum training epochs")
     parser.add_argument("-bs", "--batch_size", type=int, default=4, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
-    parser.add_argument("-lr", "--learning_rate", type=int, default=0.0001, help="Learning rate")
-    parser.add_argument("-loss", "--loss", type=str, default="both", help="Loss function")
+    parser.add_argument("-lr", "--learning_rate", type=int, default=0.00005, help="Learning rate")
+    parser.add_argument("-loss", "--loss", type=str, default="dice", help="Loss function")
     args = parser.parse_args()
     main(args)
