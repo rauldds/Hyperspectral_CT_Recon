@@ -62,8 +62,8 @@ class Unet2DMC(nn.Module):
     		ConvBlock(40, 40, kernel=(1,1), use_bn=use_bn)
 		)
 		self.pre_conv = nn.Sequential(
-    		ConvBlock(input_channels, 32, kernel=(1,1), use_bn=use_bn),
-    		ConvBlock(32, 64, kernel=(1,1), use_bn=use_bn)
+    		ConvBlock(input_channels, basic_out_channel//2, kernel=(1,1), use_bn=use_bn),
+    		ConvBlock(basic_out_channel//2, basic_out_channel, kernel=(1,1), use_bn=use_bn)
 		)
 		encoder_channels = basic_out_channel*np.array([2**(i) for i in range(depth)])
 		self.encoder = EncoderBlock(channels=encoder_channels) 
