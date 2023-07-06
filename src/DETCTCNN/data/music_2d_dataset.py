@@ -9,6 +9,8 @@ import numpy as np
 import argparse
 from  src.DETCTCNN.data.music_2d_labels import MUSIC_2D_LABELS
 import torch
+import albumentations as A
+from albumentations.pytorch import ToTensorV2
 
 class Dataset(ABC):
     def __init__(self, path2d, path3d, transform, partition, spectrum, full_dataset):
@@ -108,17 +110,13 @@ class MUSIC2DDataset(Dataset):
                                              path == "sample19" or
                                              path == "sample1" or
                                              path == "sample2" or
-                                             path == "h2o2" or
-                                             path == "h2o" or
                                              path == "README.md"):
                 continue
             elif self.partition == "valid" and not (path == "sample19" or
-                                                path == "sample1" or
-                                                path == "h2o"):
+                                                path == "sample1"):
                 continue
             elif self.partition == "test" and not (path == "sample20" or
-                                               path == "sample2" or
-                                               path == "h2o2"):
+                                               path == "sample2"):
                 continue
             #TODO: Probably good to start with reduced spectrum instead of fullspectrum
             data_path = os.path.join(self.path2d, path, self.spectrum, "reconstruction")
@@ -184,3 +182,17 @@ if __name__ == "__main__":
     #print(dataset[:]["classes"])
     print(len(dataset[:]["image"]))
     print(len(dataset[:]["segmentation"]))
+
+class ImgAugTransform:
+    def __init__(self):
+        self.aug = A.Compose([
+        A.RandomCrop(height=64, width=64),
+        A.RandomRotate90(),
+        A.Affine(p=0.5),
+        ToTensorV2(),
+    ])
+      
+    def __call__(self, img):
+        img = np.array(img)
+        img = img.transpose((1,2,0))
+        return self.aug(image=img)["image"]
