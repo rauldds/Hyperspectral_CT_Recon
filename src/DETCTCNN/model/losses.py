@@ -27,7 +27,7 @@ class DiceLoss(nn.Module):
         dice_coef = (2 * intersection + self.smooth) / (union + self.smooth)  # (N, C)
 
         if hasattr(self, 'weight'):
-                dice_coef = dice_coef * self.weight * C  # (N, C)
+                dice_coef = dice_coef * self.weight  # (N, C)
         dice_loss = 1 - torch.mean(dice_coef)  # 1
 
         return dice_loss

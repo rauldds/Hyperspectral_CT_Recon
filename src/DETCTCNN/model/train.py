@@ -7,7 +7,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from src.DETCTCNN.data.music_2d_labels import MUSIC_2D_LABELS, MUSIC_2D_PALETTE
 from  src.DETCTCNN.data import music_2d_dataset
-from src.DETCTCNN.model.utils import class_weights, image_from_segmentation, plot_segmentation
+from src.DETCTCNN.model.utils import calculate_min_max, class_weights, image_from_segmentation, plot_segmentation, calculate_data_statistics, standardize, normalize
 MUSIC2DDataset = music_2d_dataset.MUSIC2DDataset
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -18,7 +18,7 @@ import numpy as np
 
 LABELS_SIZE = len(MUSIC_2D_LABELS)
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "mps")
 
 def calculate_accuracy(pred_tensor, target_tensor):
     pred_tensor_flat = pred_tensor.argmax(dim=1).view(-1)
@@ -45,16 +45,23 @@ def main(hparams):
     
     # transform = None
     train_dataset = MUSIC2DDataset(path2d=hparams.data_root, path3d=None,partition="train",spectrum="reducedSpectrum", transform=transform)
+    if hparams.normalize_data:
+        mean, std = calculate_data_statistics(train_dataset.images)
+        train_dataset.images = list(map(lambda x: standardize(x,mean,std) , train_dataset.images))
+        min, max  = calculate_min_max(train_dataset.images)
+        train_dataset.images = list(map(lambda x: normalize(x,min,max) , train_dataset.images))
     train_loader = DataLoader(train_dataset, batch_size=hparams.batch_size)
 
     val_dataset = MUSIC2DDataset(path2d=hparams.data_root, path3d=None, partition="valid", spectrum="reducedSpectrum", transform=transform)
+    if hparams.normalize_data:
+        val_dataset.images = list(map(lambda x: standardize(x,mean,std) , val_dataset.images))
+        val_dataset.images = list(map(lambda x: normalize(x,min,max) , val_dataset.images))
     val_loader = DataLoader(val_dataset)
-
 
     dice_weights = class_weights(dataset=train_dataset, n_classes=len(MUSIC_2D_LABELS))
     # Check dice weights used to weight loss function
     dice_weights = dice_weights.float().to(device=device)
-    print(dice_weights)
+    # print(dice_weights)
 
 
     model = get_model(input_channels=10, n_labels=hparams.n_labels, use_bn=True, basic_out_channel=2*64)
@@ -75,7 +82,7 @@ def main(hparams):
         # Use Weighted Dice Loss
         loss_criterion = DiceLoss(weight=dice_weights).to(device)
     else: # Use both losses
-        loss_criterion = CEDiceLoss(weight=dice_weights, ce_weight=0.2).to(device)
+        loss_criterion = CEDiceLoss(weight=dice_weights, ce_weight=0.5).to(device)
 
     for epoch in range(hparams.epochs):  # loop over the dataset multiple times
 
@@ -144,7 +151,7 @@ def main(hparams):
 
                     val_loss +=loss.item()
                     val_acc += calculate_accuracy(val_pred, val_y)
-                    val_iou += jaccard(y_hat.argmax(1), y.argmax(1))
+                    val_iou += jaccard(y_hat.argmax(1), y.argmax(1)) * 100
 
                 val_loss /= len(val_loader)
                 val_acc /= len(val_loader)
@@ -163,9 +170,10 @@ if __name__ == "__main__":
     parser.add_argument("-ve", "--validate_every", type=int, default=10, help="Validate after each # of iterations")
     parser.add_argument("-pe", "--print_every", type=int, default=10, help="print info after each # of epochs")
     parser.add_argument("-e", "--epochs", type=int, default=700, help="Number of maximum training epochs")
-    parser.add_argument("-bs", "--batch_size", type=int, default=4, help="Batch size")
+    parser.add_argument("-bs", "--batch_size", type=int, default=8, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
     parser.add_argument("-lr", "--learning_rate", type=int, default=0.00005, help="Learning rate")
     parser.add_argument("-loss", "--loss", type=str, default="dice", help="Loss function")
+    parser.add_argument("-n", "--normalize_data", type=bool, default=True, help="Loss function")
     args = parser.parse_args()
     main(args)
