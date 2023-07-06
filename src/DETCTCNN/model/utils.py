@@ -60,3 +60,21 @@ def class_weights(dataset, n_classes):
       # Infrequent classes have high loss
       w_s[w_s == inf] = 100
       return torch.from_numpy(w_s)
+
+def calculate_data_statistics(dataset):
+    stacked_data = torch.stack(dataset,dim=0)
+    mean = stacked_data.mean(dim=(0,2,3))
+    std = stacked_data.std(dim=(0,2,3))
+    return mean, std
+
+def calculate_min_max(dataset):
+    stacked_data = torch.stack(dataset,dim=0)
+    max = stacked_data.max()
+    min = stacked_data.min() 
+    return min, max
+
+def standardize(tensor, mean, std):
+     return (tensor - mean)/std
+
+def normalize(tensor, mean, std):
+     return (tensor - mean)/std
