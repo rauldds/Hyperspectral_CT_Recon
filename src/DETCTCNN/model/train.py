@@ -16,14 +16,15 @@ import torchio as tio
 import torch.optim.lr_scheduler as lr_scheduler
 import torchmetrics
 import numpy as np
+import torch.backends
 
 LABELS_SIZE = len(MUSIC_2D_LABELS)
-
-device = torch.device("cuda" if torch.cuda.is_available() else "mps")
+device = torch.device("cuda" if torch.cuda.is_available() else 
+                      ("mps" if torch.backends.mps.is_available() else "cpu"))
 
 def calculate_accuracy(pred_tensor, target_tensor):
-    pred_tensor_flat = pred_tensor.argmax(dim=1).view(-1)
-    target_tensor_flat = target_tensor.argmax(dim=1).view(-1)
+    pred_tensor_flat = pred_tensor.cpu().argmax(dim=1).view(-1)
+    target_tensor_flat = target_tensor.cpu().view(-1)
 
     correct = torch.eq(pred_tensor_flat, target_tensor_flat).sum().item()
     total_pixels = target_tensor_flat.numel()
@@ -61,7 +62,7 @@ def main(hparams):
     # print(dice_weights)
 
 
-    model = get_model(input_channels=10, n_labels=hparams.n_labels, use_bn=True, basic_out_channel=64)
+    model = get_model(input_channels=10, n_labels=hparams.n_labels, use_bn=True, basic_out_channel=2*64)
     model.to(device=device)
     
     optimizer = torch.optim.Adam(model.parameters(), betas=([0.9, 0.999]), lr = hparams.learning_rate)
@@ -70,7 +71,7 @@ def main(hparams):
 
 
     # Metric: IOU
-    jaccard = torchmetrics.JaccardIndex('multiclass', num_classes=LABELS_SIZE).to(device=device)
+    jaccard = torchmetrics.JaccardIndex('multiclass', num_classes=LABELS_SIZE).to(device="cpu")
     loss_criterion = None
     if hparams.loss == "ce":
         # Use Weighted Cross Entropy
@@ -80,7 +81,7 @@ def main(hparams):
         loss_criterion = DiceLossV2().to(device)
     elif hparams.loss == "focal":
         # Use Weighted Dice Loss
-        loss_criterion = FocalLoss(gamma=5, weight=dice_weights).to(device)
+        loss_criterion = FocalLoss(gamma=2, alpha=dice_weights).to(device)
     else: # Use both losses
         loss_criterion = CEDiceLoss(weight=dice_weights, ce_weight=0.5).to(device)
 
@@ -91,7 +92,7 @@ def main(hparams):
         train_accuracy = 0.0
         for i, data in enumerate(train_loader, 0):
             # get the inputs; data is a list of [inputs, labels]
-            X, y  = data['image'], data['segmentation']
+            X, y  = data['image'], data['segmentation'].argmax(1)
             X = X.to(device)
             y = y.to(device)
             
@@ -99,7 +100,7 @@ def main(hparams):
 
             # Forward Pass
             y_hat = model(X)
-            loss = loss_criterion(y_hat, y)
+            loss = 1000* loss_criterion(y_hat, y)
 
             # backward pass
             loss.backward()
@@ -108,7 +109,7 @@ def main(hparams):
             # print statistics
             running_loss += loss.item()
             train_accuracy = calculate_accuracy(pred_tensor=y_hat, target_tensor=y)
-            train_iou = jaccard(y_hat.argmax(1), y.argmax(1)) * 100
+            train_iou = jaccard(y_hat.cpu().argmax(1), y.cpu()) * 100
 
             if epoch % 10 == 0:
                 torch.save({
@@ -143,7 +144,7 @@ def main(hparams):
                 val_iou = 0.0
                 for val_data in val_loader:
 
-                    val_X, val_y = val_data["image"].to(device), val_data["segmentation"].to(device)
+                    val_X, val_y = val_data["image"].to(device), val_data["segmentation"].argmax(1).to(device)
 
                     with torch.no_grad():
                         val_pred = model(val_X)
@@ -151,7 +152,7 @@ def main(hparams):
 
                     val_loss +=loss.item()
                     val_acc += calculate_accuracy(val_pred, val_y)
-                    val_iou += jaccard(y_hat.argmax(1), y.argmax(1)) * 100
+                    val_iou += jaccard(y_hat.cpu().argmax(1), y.cpu()) * 100
 
                 val_loss /= len(val_loader)
                 val_acc /= len(val_loader)
@@ -172,7 +173,7 @@ if __name__ == "__main__":
     parser.add_argument("-e", "--epochs", type=int, default=3000, help="Number of maximum training epochs")
     parser.add_argument("-bs", "--batch_size", type=int, default=4, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
-    parser.add_argument("-lr", "--learning_rate", type=int, default=0.0005, help="Learning rate")
+    parser.add_argument("-lr", "--learning_rate", type=int, default=0.0001, help="Learning rate")
     parser.add_argument("-loss", "--loss", type=str, default="ce", help="Loss function")
     parser.add_argument("-n", "--normalize_data", type=bool, default=True, help="Loss function")
     args = parser.parse_args()
