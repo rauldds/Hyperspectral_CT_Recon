@@ -182,11 +182,11 @@ if __name__ == "__main__":
 class ImgAugTransform:
     def __init__(self):
         self.aug = A.Compose([
-        A.RandomRotate90(),
-        A.Affine(),
+        # A.RandomRotate90(),
+        # A.Affine(),
         # A.RandomCrop(height=64, width=64, p=0.8),
         A.RandomScale(scale_limit=0.1, p=0.5),
-        A.Resize(100,100),
+        A.Resize(128,128),
         # A.GaussNoise(var_limit=(0.01,0.1)),
         ToTensorV2(),
     ])
