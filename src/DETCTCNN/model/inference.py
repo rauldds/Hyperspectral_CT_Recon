@@ -15,29 +15,41 @@ INPUT_CHANNELS ={
 
 def main(args):
     dataset = MUSIC2DDataset(path2d=args.data_root, path3d=None, 
-                            spectrum=args.spectrum, partition="test",
+                            spectrum=args.spectrum, partition="train",
                             full_dataset=False)
     model = get_model(input_channels=INPUT_CHANNELS[args.spectrum], n_labels=args.n_labels,use_bn=True, basic_out_channel=64)
-    checkpoint = torch.load("model.pt", map_location=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+    checkpoint = torch.load("model_best.pt", map_location=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
     jaccard = torchmetrics.JaccardIndex('multiclass', num_classes=LABELS_SIZE)
-    seg = dataset[0]["segmentation"].unsqueeze(0)
-    dataset = dataset[0]["image"].unsqueeze(0)
+    img = dataset[args.sample]["image"].unsqueeze(0)
+    seg = dataset[args.sample]["segmentation"].unsqueeze(0)
     palette = np.array(MUSIC_2D_PALETTE)
+    colored_seg = seg.argmax(dim=1).squeeze(0).detach().cpu().numpy()
+    colored_seg = palette[colored_seg].astype(np.uint8)
 
     with torch.no_grad():
-        x = model(dataset)
-        print(x.shape)
+        x = model(img)
         pred = x.argmax(dim=1).squeeze(0).detach().cpu().numpy()
         colored_image = palette[pred]
         colored_image = colored_image.astype(np.uint8)
         # image_from_segmentation(x, 16, MUSIC_2D_PALETTE, device="cpu")
         print(jaccard(x.argmax(1), seg.argmax(1)))
-    plt.figure()
-    plt.title("Prediction")
+    plt.figure(figsize=(10, 5))
+
+    # Plot seg
+    plt.subplot(1, 2, 1)
+    plt.title("Seg")
+    plt.imshow(colored_seg)
+    plt.axis('off')
+
+    # Plot dataset
+    plt.subplot(1, 2, 2)
+    plt.title("img")
     plt.imshow(colored_image)
+    plt.axis('off')
     plt.show()
+
 
 if __name__ == "__main__":
     parser = ArgumentParser()
@@ -48,5 +60,6 @@ if __name__ == "__main__":
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
     parser.add_argument("-lr", "--learning_rate", type=int, default=0.00001, help="Learning rate")
     parser.add_argument("-sp", "--spectrum", type=str, default="reducedSpectrum", help="NUmber of slices")
+    parser.add_argument("-s", "--sample", type=int, default=5, help="NUmber of slices")
     args = parser.parse_args()
     main(args)

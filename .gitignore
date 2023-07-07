@@ -60,5 +60,6 @@ docs/_build/
 *.xml
 
 src/DETCTCNN/model/runs/
+runs/
 src/DETCTCNN/model/model.pt
 src/DETCTCNN/model/__pycache__/
