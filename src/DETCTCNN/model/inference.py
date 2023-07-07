@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
 import numpy as np
 from matplotlib import pyplot as plt
+import torchmetrics
 from src.DETCTCNN.model.model import get_model
 import torch
 from src.DETCTCNN.data.music_2d_labels import MUSIC_2D_LABELS, MUSIC_2D_PALETTE
@@ -14,24 +15,25 @@ INPUT_CHANNELS ={
 
 def main(args):
     dataset = MUSIC2DDataset(path2d=args.data_root, path3d=None, 
-                            spectrum=args.spectrum, partition="train",
+                            spectrum=args.spectrum, partition="test",
                             full_dataset=False)
-    model = get_model(input_channels=INPUT_CHANNELS[args.spectrum], n_labels=args.n_labels,use_bn=True, basic_out_channel=2*64)
+    model = get_model(input_channels=INPUT_CHANNELS[args.spectrum], n_labels=args.n_labels,use_bn=True, basic_out_channel=64)
     checkpoint = torch.load("model.pt", map_location=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
-    
-    dataset = dataset[1]["image"].unsqueeze(0)
-    
+    jaccard = torchmetrics.JaccardIndex('multiclass', num_classes=LABELS_SIZE)
+    seg = dataset[0]["segmentation"].unsqueeze(0)
+    dataset = dataset[0]["image"].unsqueeze(0)
     palette = np.array(MUSIC_2D_PALETTE)
 
     with torch.no_grad():
         x = model(dataset)
+        print(x.shape)
         pred = x.argmax(dim=1).squeeze(0).detach().cpu().numpy()
         colored_image = palette[pred]
         colored_image = colored_image.astype(np.uint8)
         # image_from_segmentation(x, 16, MUSIC_2D_PALETTE, device="cpu")
-        print(colored_image)
+        print(jaccard(x.argmax(1), seg.argmax(1)))
     plt.figure()
     plt.title("Prediction")
     plt.imshow(colored_image)
@@ -41,10 +43,10 @@ if __name__ == "__main__":
     parser = ArgumentParser()
 
     parser.add_argument("-dr", "--data_root", type=str, default="MUSIC2D_HDF5", help="Data root directory")
-    parser.add_argument("-e", "--epochs", type=int, default=700, help="Number of maximum training epochs")
+    parser.add_argument("-e", "--epochs", type=int, default=3000, help="Number of maximum training epochs")
     parser.add_argument("-bs", "--batch_size", type=int, default=1, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
-    parser.add_argument("-lr", "--learning_rate", type=int, default=0.00005, help="Learning rate")
+    parser.add_argument("-lr", "--learning_rate", type=int, default=0.00001, help="Learning rate")
     parser.add_argument("-sp", "--spectrum", type=str, default="reducedSpectrum", help="NUmber of slices")
     args = parser.parse_args()
     main(args)

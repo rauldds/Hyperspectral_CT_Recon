@@ -1,5 +1,7 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+from torch.autograd import Variable
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -31,6 +33,22 @@ class DiceLoss(nn.Module):
         dice_loss = 1 - torch.mean(dice_coef)  # 1
 
         return dice_loss
+
+class DiceLossV2(nn.Module):
+
+    def __init__(self):
+        super(DiceLossV2, self).__init__()
+        self.smooth = 1.0
+
+    def forward(self, y_pred, y_true):
+        assert y_pred.size() == y_true.size()
+        y_pred = y_pred[:, 0].contiguous().view(-1)
+        y_true = y_true[:, 0].contiguous().view(-1)
+        intersection = (y_pred * y_true).sum()
+        dsc = (2. * intersection + self.smooth) / (
+            y_pred.sum() + y_true.sum() + self.smooth
+        )
+        return 1. - dsc
     
 class CEDiceLoss(nn.Module):
     def __init__(self, weight=None, ce_weight = 0.8):
@@ -40,8 +58,21 @@ class CEDiceLoss(nn.Module):
             self.weight = weight
         self.smooth = 1e-5
         self.ce = torch.nn.CrossEntropyLoss(weight=weight)
-        self.dice = DiceLoss(weight=weight)
+        self.dice = DiceLossV2()
         self.w = ce_weight
 
     def forward(self, predict, target):
          return (self.w) * self.ce(predict, target) + (1-self.w) * self.dice(predict, target)
+    
+class FocalLoss(nn.modules.loss._WeightedLoss):
+    def __init__(self, weight=None, gamma=2,reduction='mean'):
+        super(FocalLoss, self).__init__(weight,reduction=reduction)
+        self.gamma = gamma
+        self.weight = weight #weight parameter will act as the alpha parameter to balance class weights
+
+    def forward(self, input, target):
+
+        ce_loss = F.cross_entropy(input, target,reduction=self.reduction,weight=self.weight)
+        pt = torch.exp(-ce_loss)
+        focal_loss = ((1 - pt) ** self.gamma * ce_loss).mean()
+        return focal_loss

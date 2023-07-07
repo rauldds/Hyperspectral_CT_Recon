@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from losses import DiceLoss, CEDiceLoss
+from losses import DiceLoss, CEDiceLoss, FocalLoss
 from model import get_model
 import torch
 from torch.utils.tensorboard import SummaryWriter
@@ -7,6 +7,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from src.DETCTCNN.data.music_2d_labels import MUSIC_2D_LABELS, MUSIC_2D_PALETTE
 from  src.DETCTCNN.data import music_2d_dataset
+from src.DETCTCNN.model.losses import DiceLossV2
 from src.DETCTCNN.model.utils import calculate_min_max, class_weights, image_from_segmentation, plot_segmentation, calculate_data_statistics, standardize, normalize
 MUSIC2DDataset = music_2d_dataset.MUSIC2DDataset
 from torch.utils.data import DataLoader
@@ -36,21 +37,17 @@ def calculate_accuracy(pred_tensor, target_tensor):
 def main(hparams):
     
     # Initialize Transformations
-    transform = tio.Compose([
-        tio.RandomFlip(axes=(1,2)),
-        # tio.RandomNoise(std=(0,0.05)),
-        # tio.RandomElasticDeformation(max_displacement=20),
-    ])
+    transform = music_2d_dataset.ImgAugTransform()
 
     
-    # transform = None
+    transform = None
     train_dataset = MUSIC2DDataset(path2d=hparams.data_root, path3d=None,partition="train",spectrum="reducedSpectrum", transform=transform)
     if hparams.normalize_data:
         mean, std = calculate_data_statistics(train_dataset.images)
         train_dataset.images = list(map(lambda x: standardize(x,mean,std) , train_dataset.images))
         min, max  = calculate_min_max(train_dataset.images)
         train_dataset.images = list(map(lambda x: normalize(x,min,max) , train_dataset.images))
-    train_loader = DataLoader(train_dataset, batch_size=hparams.batch_size)
+    train_loader = DataLoader(train_dataset, batch_size=hparams.batch_size, shuffle=True)
 
     val_dataset = MUSIC2DDataset(path2d=hparams.data_root, path3d=None, partition="valid", spectrum="reducedSpectrum", transform=transform)
     if hparams.normalize_data:
@@ -64,7 +61,7 @@ def main(hparams):
     # print(dice_weights)
 
 
-    model = get_model(input_channels=10, n_labels=hparams.n_labels, use_bn=True, basic_out_channel=2*64)
+    model = get_model(input_channels=10, n_labels=hparams.n_labels, use_bn=True, basic_out_channel=64)
     model.to(device=device)
     
     optimizer = torch.optim.Adam(model.parameters(), betas=([0.9, 0.999]), lr = hparams.learning_rate)
@@ -80,7 +77,10 @@ def main(hparams):
         loss_criterion = torch.nn.CrossEntropyLoss(weight=dice_weights).to(device)
     elif hparams.loss == "dice":
         # Use Weighted Dice Loss
-        loss_criterion = DiceLoss(weight=dice_weights).to(device)
+        loss_criterion = DiceLossV2().to(device)
+    elif hparams.loss == "focal":
+        # Use Weighted Dice Loss
+        loss_criterion = FocalLoss(gamma=5, weight=dice_weights).to(device)
     else: # Use both losses
         loss_criterion = CEDiceLoss(weight=dice_weights, ce_weight=0.5).to(device)
 
@@ -169,11 +169,11 @@ if __name__ == "__main__":
     # parser.add_argument("-dr", "--data_root", type=str, default="/media/davidg-dl/Second SSD/MUSIC2D_HDF5", help="Data root directory")
     parser.add_argument("-ve", "--validate_every", type=int, default=10, help="Validate after each # of iterations")
     parser.add_argument("-pe", "--print_every", type=int, default=10, help="print info after each # of epochs")
-    parser.add_argument("-e", "--epochs", type=int, default=700, help="Number of maximum training epochs")
-    parser.add_argument("-bs", "--batch_size", type=int, default=8, help="Batch size")
+    parser.add_argument("-e", "--epochs", type=int, default=3000, help="Number of maximum training epochs")
+    parser.add_argument("-bs", "--batch_size", type=int, default=4, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
-    parser.add_argument("-lr", "--learning_rate", type=int, default=0.00005, help="Learning rate")
-    parser.add_argument("-loss", "--loss", type=str, default="dice", help="Loss function")
+    parser.add_argument("-lr", "--learning_rate", type=int, default=0.0005, help="Learning rate")
+    parser.add_argument("-loss", "--loss", type=str, default="ce", help="Loss function")
     parser.add_argument("-n", "--normalize_data", type=bool, default=True, help="Loss function")
     args = parser.parse_args()
     main(args)
