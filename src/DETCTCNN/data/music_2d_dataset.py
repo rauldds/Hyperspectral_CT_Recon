@@ -185,7 +185,7 @@ class MusicTransform:
         self.aug = A.Compose([
         A.RandomRotate90(),
         A.Affine(),
-        A.RandomCrop(height=64, width=64, p=0.8),
+        A.RandomCrop(height=64, width=64, p=0.5),
         A.RandomScale(scale_limit=0.1, p=0.5),
         A.Resize(resize,resize),
         # A.GaussNoise(var_limit=(0.01,0.1)),
