@@ -8,6 +8,7 @@ from torch.utils.tensorboard import SummaryWriter
 from src.DETCTCNN.data.music_2d_labels import MUSIC_2D_LABELS, MUSIC_2D_PALETTE
 from  src.DETCTCNN.data import music_2d_dataset
 from src.DETCTCNN.model.losses import DiceLossV2
+from src.DETCTCNN.model.metrics import mIoU_score
 from src.DETCTCNN.model.utils import calculate_min_max, class_weights, image_from_segmentation, plot_segmentation, calculate_data_statistics, standardize, normalize
 MUSIC2DDataset = music_2d_dataset.MUSIC2DDataset
 from torch.utils.data import DataLoader
@@ -71,7 +72,6 @@ def main(hparams):
 
 
     # Metric: IOU
-    jaccard = torchmetrics.JaccardIndex('multiclass', num_classes=LABELS_SIZE).to(device="cpu")
     loss_criterion = None
     if hparams.loss == "ce":
         # Use Weighted Cross Entropy
@@ -109,7 +109,7 @@ def main(hparams):
             # print statistics
             running_loss += loss.item()
             train_accuracy = calculate_accuracy(pred_tensor=y_hat, target_tensor=y)
-            train_iou = jaccard(y_hat.cpu().argmax(1), y.cpu()) * 100
+            train_iou = mIoU_score(y_hat.cpu().argmax(1), y.cpu(), n_classes=LABELS_SIZE) * 100
 
             if epoch % 10 == 0:
                 torch.save({
@@ -152,7 +152,7 @@ def main(hparams):
 
                     val_loss +=loss.item()
                     val_acc += calculate_accuracy(val_pred, val_y)
-                    val_iou += jaccard(y_hat.cpu().argmax(1), y.cpu()) * 100
+                    val_iou += mIoU_score(y_hat.cpu().argmax(1), y.cpu(), n_classes=LABELS_SIZE) * 100
 
                 val_loss /= len(val_loader)
                 val_acc /= len(val_loader)
@@ -174,7 +174,7 @@ if __name__ == "__main__":
     parser.add_argument("-bs", "--batch_size", type=int, default=4, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
     parser.add_argument("-lr", "--learning_rate", type=int, default=0.0005, help="Learning rate")
-    parser.add_argument("-loss", "--loss", type=str, default="ce", help="Loss function")
+    parser.add_argument("-loss", "--loss", type=str, default="focal", help="Loss function")
     parser.add_argument("-n", "--normalize_data", type=bool, default=True, help="Loss function")
     args = parser.parse_args()
     main(args)
