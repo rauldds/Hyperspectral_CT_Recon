@@ -39,7 +39,7 @@ def calculate_accuracy(pred_tensor, target_tensor):
 def main(hparams):
     
     # Initialize Transformations
-    transform = music_2d_dataset.ImgAugTransform()
+    transform = music_2d_dataset.MusicTransform(resize=128)
 
     
     # transform = None
