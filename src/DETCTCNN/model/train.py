@@ -3,8 +3,6 @@ from losses import DiceLoss, CEDiceLoss, FocalLoss
 from model import get_model
 import torch
 from torch.utils.tensorboard import SummaryWriter
-
-
 from src.DETCTCNN.data.music_2d_labels import MUSIC_2D_LABELS, MUSIC_2D_PALETTE
 from  src.DETCTCNN.data import music_2d_dataset
 from src.DETCTCNN.model.losses import DiceLossV2
@@ -12,11 +10,6 @@ from src.DETCTCNN.model.metrics import mIoU_score
 from src.DETCTCNN.model.utils import calculate_min_max, class_weights, image_from_segmentation, plot_segmentation, calculate_data_statistics, standardize, normalize
 MUSIC2DDataset = music_2d_dataset.MUSIC2DDataset
 from torch.utils.data import DataLoader
-from torchvision import transforms
-import torchio as tio
-import torch.optim.lr_scheduler as lr_scheduler
-import torchmetrics
-import numpy as np
 import torch.backends
 
 LABELS_SIZE = len(MUSIC_2D_LABELS)

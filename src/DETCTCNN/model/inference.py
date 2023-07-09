@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 import numpy as np
 from matplotlib import pyplot as plt
-import torchmetrics
+from src.DETCTCNN.model.metrics import mIoU_score
 from src.DETCTCNN.model.model import get_model
 import torch
 from src.DETCTCNN.data.music_2d_labels import MUSIC_2D_LABELS, MUSIC_2D_PALETTE
@@ -27,7 +27,6 @@ def main(args):
     checkpoint = torch.load("model_best_focal.pt", map_location=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
-    jaccard = torchmetrics.JaccardIndex('multiclass', num_classes=LABELS_SIZE)
     img = dataset[args.sample]["image"].unsqueeze(0)
     seg = dataset[args.sample]["segmentation"].unsqueeze(0)
     palette = np.array(MUSIC_2D_PALETTE)
@@ -40,7 +39,7 @@ def main(args):
         colored_image = palette[pred]
         colored_image = colored_image.astype(np.uint8)
         # image_from_segmentation(x, 16, MUSIC_2D_PALETTE, device="cpu")
-        print(jaccard(x.argmax(1), seg.argmax(1)))
+        print(mIoU_score(x.argmax(1), seg.argmax(1)))
     plt.figure(figsize=(10, 5))
 
     # Plot seg
