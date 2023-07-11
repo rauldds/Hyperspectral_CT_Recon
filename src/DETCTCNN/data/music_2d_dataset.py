@@ -53,17 +53,13 @@ class MUSIC2DDataset(Dataset):
     def _get_image(self,index):
         image = self.images[index]
         if self.transform is not None:
-            image = image.unsqueeze(-1)
             image = self.transform(image)
-            image = image.squeeze(-1)
         return image
 
     def _get_segmentation(self,index):
         segmentation = self.segmentations[index]
         if self.transform is not None:
-            segmentation = segmentation.unsqueeze(-1)
             segmentation = self.transform(segmentation)
-            segmentation = segmentation.squeeze(-1)
         return segmentation
     
     def _get_classes(self, segmentation):
@@ -183,12 +179,15 @@ if __name__ == "__main__":
     print(len(dataset[:]["image"]))
     print(len(dataset[:]["segmentation"]))
 
-class ImgAugTransform:
-    def __init__(self):
+class MusicTransform:
+    def __init__(self, resize=128):
+        self.resize = resize
         self.aug = A.Compose([
-        A.RandomCrop(height=64, width=64),
+        A.CenterCrop(85,85),
+        A.Resize(resize,resize),
         A.RandomRotate90(),
-        A.Affine(p=0.5),
+        A.Affine(),
+        # A.GaussNoise(var_limit=(0.01,0.1)),
         ToTensorV2(),
     ])
       

@@ -1,28 +1,24 @@
 from argparse import ArgumentParser
-from losses import DiceLoss, CEDiceLoss
+from losses import DiceLoss, CEDiceLoss, FocalLoss
 from model import get_model
 import torch
 from torch.utils.tensorboard import SummaryWriter
-
-
 from src.DETCTCNN.data.music_2d_labels import MUSIC_2D_LABELS, MUSIC_2D_PALETTE
 from  src.DETCTCNN.data import music_2d_dataset
-from src.DETCTCNN.model.utils import class_weights, image_from_segmentation, plot_segmentation
+from src.DETCTCNN.model.losses import DiceLossV2
+from src.DETCTCNN.model.metrics import mIoU_score
+from src.DETCTCNN.model.utils import calculate_min_max, class_weights, image_from_segmentation, plot_segmentation, calculate_data_statistics, standardize, normalize
 MUSIC2DDataset = music_2d_dataset.MUSIC2DDataset
 from torch.utils.data import DataLoader
-from torchvision import transforms
-import torchio as tio
-import torch.optim.lr_scheduler as lr_scheduler
-import torchmetrics
-import numpy as np
+import torch.backends
 
 LABELS_SIZE = len(MUSIC_2D_LABELS)
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else 
+                      ("mps" if torch.backends.mps.is_available() else "cpu"))
 
 def calculate_accuracy(pred_tensor, target_tensor):
-    pred_tensor_flat = pred_tensor.argmax(dim=1).view(-1)
-    target_tensor_flat = target_tensor.argmax(dim=1).view(-1)
+    pred_tensor_flat = pred_tensor.cpu().argmax(dim=1).view(-1)
+    target_tensor_flat = target_tensor.cpu().view(-1)
 
     correct = torch.eq(pred_tensor_flat, target_tensor_flat).sum().item()
     total_pixels = target_tensor_flat.numel()
@@ -36,28 +32,31 @@ def calculate_accuracy(pred_tensor, target_tensor):
 def main(hparams):
     
     # Initialize Transformations
-    transform = tio.Compose([
-        tio.RandomFlip(axes=(1,2)),
-        # tio.RandomNoise(std=(0,0.05)),
-        # tio.RandomElasticDeformation(max_displacement=20),
-    ])
+    transform = music_2d_dataset.MusicTransform(resize=128)
 
     
     # transform = None
     train_dataset = MUSIC2DDataset(path2d=hparams.data_root, path3d=None,partition="train",spectrum="reducedSpectrum", transform=transform)
-    train_loader = DataLoader(train_dataset, batch_size=hparams.batch_size)
+    if hparams.normalize_data:
+        mean, std = calculate_data_statistics(train_dataset.images)
+        train_dataset.images = list(map(lambda x: standardize(x,mean,std) , train_dataset.images))
+        min, max  = calculate_min_max(train_dataset.images)
+        train_dataset.images = list(map(lambda x: normalize(x,min,max) , train_dataset.images))
+    train_loader = DataLoader(train_dataset, batch_size=hparams.batch_size, shuffle=True)
 
     val_dataset = MUSIC2DDataset(path2d=hparams.data_root, path3d=None, partition="valid", spectrum="reducedSpectrum", transform=transform)
+    if hparams.normalize_data:
+        val_dataset.images = list(map(lambda x: standardize(x,mean,std) , val_dataset.images))
+        val_dataset.images = list(map(lambda x: normalize(x,min,max) , val_dataset.images))
     val_loader = DataLoader(val_dataset)
-
 
     dice_weights = class_weights(dataset=train_dataset, n_classes=len(MUSIC_2D_LABELS))
     # Check dice weights used to weight loss function
     dice_weights = dice_weights.float().to(device=device)
-    print(dice_weights)
+    # print(dice_weights)
 
 
-    model = get_model(input_channels=10, n_labels=hparams.n_labels, use_bn=True, basic_out_channel=2*64)
+    model = get_model(input_channels=10, n_labels=hparams.n_labels, use_bn=True, basic_out_channel=64, depth=3)
     model.to(device=device)
     
     optimizer = torch.optim.Adam(model.parameters(), betas=([0.9, 0.999]), lr = hparams.learning_rate)
@@ -66,16 +65,18 @@ def main(hparams):
 
 
     # Metric: IOU
-    jaccard = torchmetrics.JaccardIndex('multiclass', num_classes=LABELS_SIZE).to(device=device)
     loss_criterion = None
     if hparams.loss == "ce":
         # Use Weighted Cross Entropy
         loss_criterion = torch.nn.CrossEntropyLoss(weight=dice_weights).to(device)
     elif hparams.loss == "dice":
         # Use Weighted Dice Loss
-        loss_criterion = DiceLoss(weight=dice_weights).to(device)
+        loss_criterion = DiceLossV2().to(device)
+    elif hparams.loss == "focal":
+        # Use Weighted Dice Loss
+        loss_criterion = FocalLoss(gamma=2, alpha=dice_weights).to(device)
     else: # Use both losses
-        loss_criterion = CEDiceLoss(weight=dice_weights, ce_weight=0.2).to(device)
+        loss_criterion = CEDiceLoss(weight=dice_weights, ce_weight=0.5).to(device)
 
     for epoch in range(hparams.epochs):  # loop over the dataset multiple times
 
@@ -84,7 +85,7 @@ def main(hparams):
         train_accuracy = 0.0
         for i, data in enumerate(train_loader, 0):
             # get the inputs; data is a list of [inputs, labels]
-            X, y  = data['image'], data['segmentation']
+            X, y  = data['image'], data['segmentation'].argmax(1)
             X = X.to(device)
             y = y.to(device)
             
@@ -101,7 +102,7 @@ def main(hparams):
             # print statistics
             running_loss += loss.item()
             train_accuracy = calculate_accuracy(pred_tensor=y_hat, target_tensor=y)
-            train_iou = jaccard(y_hat.argmax(1), y.argmax(1)) * 100
+            train_iou = mIoU_score(y_hat.cpu().argmax(1), y.cpu(), n_classes=LABELS_SIZE) * 100
 
             if epoch % 10 == 0:
                 torch.save({
@@ -136,7 +137,7 @@ def main(hparams):
                 val_iou = 0.0
                 for val_data in val_loader:
 
-                    val_X, val_y = val_data["image"].to(device), val_data["segmentation"].to(device)
+                    val_X, val_y = val_data["image"].to(device), val_data["segmentation"].argmax(1).to(device)
 
                     with torch.no_grad():
                         val_pred = model(val_X)
@@ -144,7 +145,7 @@ def main(hparams):
 
                     val_loss +=loss.item()
                     val_acc += calculate_accuracy(val_pred, val_y)
-                    val_iou += jaccard(y_hat.argmax(1), y.argmax(1))
+                    val_iou += mIoU_score(y_hat.cpu().argmax(1), y.cpu(), n_classes=LABELS_SIZE) * 100
 
                 val_loss /= len(val_loader)
                 val_acc /= len(val_loader)
@@ -162,10 +163,11 @@ if __name__ == "__main__":
     # parser.add_argument("-dr", "--data_root", type=str, default="/media/davidg-dl/Second SSD/MUSIC2D_HDF5", help="Data root directory")
     parser.add_argument("-ve", "--validate_every", type=int, default=10, help="Validate after each # of iterations")
     parser.add_argument("-pe", "--print_every", type=int, default=10, help="print info after each # of epochs")
-    parser.add_argument("-e", "--epochs", type=int, default=700, help="Number of maximum training epochs")
+    parser.add_argument("-e", "--epochs", type=int, default=3000, help="Number of maximum training epochs")
     parser.add_argument("-bs", "--batch_size", type=int, default=4, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
-    parser.add_argument("-lr", "--learning_rate", type=int, default=0.00005, help="Learning rate")
-    parser.add_argument("-loss", "--loss", type=str, default="dice", help="Loss function")
+    parser.add_argument("-lr", "--learning_rate", type=int, default=0.0005, help="Learning rate")
+    parser.add_argument("-loss", "--loss", type=str, default="focal", help="Loss function")
+    parser.add_argument("-n", "--normalize_data", type=bool, default=True, help="Loss function")
     args = parser.parse_args()
     main(args)

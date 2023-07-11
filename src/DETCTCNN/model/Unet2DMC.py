@@ -23,6 +23,7 @@ class EncoderBlock(nn.Module):
 		return outs 
 
 class DecoderBlock(nn.Module):
+
 	def __init__(self, channels=(256,128,64)):
 		super().__init__()
 		self.channels = channels
@@ -31,18 +32,18 @@ class DecoderBlock(nn.Module):
 		self.channels = channels
 		self.dropout = [nn.Dropout() for i in range(len(channels) - 1)]
 		self.upconvs = nn.ModuleList(
-			[nn.ConvTranspose2d(channels[i], channels[i + 1], 2, 2)
-			 	for i in range(len(channels) - 1)])
+			[nn.ConvTranspose2d(channels[i], channels[i], 2, 2)
+			 	for i in range(len(channels) - 2)])
 		self.dec_blocks = nn.ModuleList(
-			[ConvBlock(channels[i], channels[i], use_bn=True)
-			 	for i in range(len(channels) - 1)])
+			[ConvBlock((channels[i] + channels[i + 2]), (channels[i] + channels[i + 2]), use_bn=True)
+			 	for i in range(len(channels) - 2)])
 		# # Missing one conv block
 		self.dec_blocks_2 = nn.ModuleList(
-			[ConvBlock(channels[i], channels[i + 1], use_bn=True)
-			 	for i in range(len(channels) - 1)])
+			[ConvBlock((channels[i] + channels[i + 2]), channels[i + 1], use_bn=True)
+			 	for i in range(len(channels) - 2)])
 
 	def forward(self, x, connections):
-		for i in range(len(self.channels) - 1):
+		for i in range(len(self.channels) - 2):
 
 			x = self.upconvs[i](x)
 			x = torch.cat([x, connections[i]], dim=1)
@@ -53,7 +54,7 @@ class DecoderBlock(nn.Module):
 
 # Basic out channel is a multiplier
 class Unet2DMC(nn.Module):
-	def __init__(self,input_channels=2,with_1conv=True, use_bn=False, depth=3, basic_out_channel=640, n_labels=7):
+	def __init__(self,input_channels=2,with_1conv=True, use_bn=False, depth=3, basic_out_channel=64, n_labels=7):
 		super(Unet2DMC, self).__init__()
 		self.with_1conv=with_1conv
 		self.input_channels = input_channels
@@ -65,9 +66,10 @@ class Unet2DMC(nn.Module):
     		ConvBlock(input_channels, basic_out_channel//2, kernel=(1,1), use_bn=use_bn),
     		ConvBlock(basic_out_channel//2, basic_out_channel, kernel=(1,1), use_bn=use_bn)
 		)
-		encoder_channels = basic_out_channel*np.array([2**(i) for i in range(depth)])
+		encoder_channels = basic_out_channel*np.array([1] + [2**(i) for i in range(depth)])
 		self.encoder = EncoderBlock(channels=encoder_channels) 
-		decoder_channels = basic_out_channel*np.array([2**(i) for i in reversed(range(depth))]) 
+		decoder_channels = basic_out_channel*np.array([2**(depth-1)] + [2**(i) for i in reversed(range(depth))])
+		decoder_channels = np.append(decoder_channels,40+basic_out_channel) 
 		self.decoder = DecoderBlock(channels=decoder_channels)
 		self.final = ConvBlock(basic_out_channel, n_labels, kernel=(1, 1))
 
@@ -77,9 +79,9 @@ class Unet2DMC(nn.Module):
 		
 		pre = self.pre_conv(x)
 		out = self.encoder(pre)
-		connections = list(reversed([pre] + out[::-1][1:] ))
-		connections.append(torch.cat([pre, init], dim=1))
+		connections =  out[::-1][1:] 
 		# Get last output for decoder and rest for unet connections
+		connections.append(torch.cat([pre,init], dim=1))
 		out = self.decoder(out[-1],connections)
 		# Add other residual connections
 		out = self.final(out)

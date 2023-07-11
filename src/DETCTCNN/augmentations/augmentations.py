@@ -23,3 +23,25 @@ class NPFlip(object):
     
     def __repr__(self):
         return self.__class__.__name__ + '(flip dimension={0})'.format(self.axis)
+
+class Normalize(object):
+    def __init__(self, mean=0., std=0.05):
+        self.std = std
+        self.mean = mean
+        
+    def __call__(self, tensor):
+        return (tensor - self.mean)/self.std
+    
+    def __repr__(self):
+        return self.__class__.__name__ + '(mean={0}, std={1})'.format(self.mean, self.std)
+
+class Standardize(object):
+    def __init__(self, min=0., max=0.05):
+        self.min = min
+        self.max = max
+        
+    def __call__(self, tensor):
+        return (tensor - self.min) / (self.max - self.min)
+    
+    def __repr__(self):
+        return self.__class__.__name__ + '(min={0}, max={1})'.format(self.min, self.max)
