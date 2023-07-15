@@ -74,7 +74,7 @@ def feature_importance_per_material(args):
             # Performs poorly
             importance = model.feature_importances_
 
-        # Do permutation importance
+        # Do permutation importance for class agnostic score
         if args.permutation:
             results = permutation_importance(model, X, y, n_repeats=5, random_state=0, n_jobs=args.permutation_cores)
             importance = results.importances_mean
