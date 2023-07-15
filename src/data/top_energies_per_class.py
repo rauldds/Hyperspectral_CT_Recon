@@ -91,16 +91,12 @@ def feature_importance_per_material(args):
             f = open(f"{MODEL_PATH}/{label}.txt", "w")
             f.write(f"--------- Top {NO_FEATS} Worst and Best Features ----------")
             for i in ids_importance:
-                if i != 0 and i % NO_FEATS == 0:
-                    f.write("--------- Best features ----------\n")
                 f.write('Feature: {}, Score: {}\n'.format(i,importance[i]))
             f.write(f"Accuracy: {accuracy}")
             f.close()
         else:
             print(f"--------- Top {NO_FEATS} Worst and Best Features ----------")
             for i in ids_importance:
-                if i != 0 and i % NO_FEATS == 0:
-                    print("--------- Best features ----------")
                 print('Feature: {}, Score: {}'.format(i,importance[i]))
         # plot feature importance
         plt.bar(np.char.mod('%d', ids_importance), importance[ids_importance])
