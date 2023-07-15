@@ -42,6 +42,11 @@ def feature_importance_per_material(args):
         y_cur[match_idx] = 1
         y_cur[~match_idx] = 0
 
+        # Empty class: Skip
+        if y_cur.any(1) is False:
+            continue
+
+
         # Create Model
         model = None
         if args.model == "linreg":
