@@ -12,6 +12,8 @@ import seaborn as sns
 from music_2d_labels import MUSIC_2D_LABELS
 from tqdm import tqdm
 import os
+from sklearn.model_selection import train_test_split
+
 PATH = os.path.join("experiments", "features")
 ##
 def feature_importance_per_material(args):
@@ -46,6 +48,7 @@ def feature_importance_per_material(args):
         if ~np.any(y_cur == 1):
             continue
 
+        x_train, x_test, y_train, y_test = train_test_split(X, y_cur, test_size=0.20, random_state=0)
 
         # Create Model
         model = None
@@ -58,15 +61,22 @@ def feature_importance_per_material(args):
 
         MODEL_PATH = os.path.join(PATH, args.model)
         # fit the model
-        model.fit(X=X, y=y_cur)
+        model.fit(X=x_train, y=y_train)
         # get importance
         importance = None
         if args.model == "linreg":
+            # Performs terribly
             importance = model.coef_
         elif args.model == "logreg": 
+            # Performs well
             importance = model.coef_[0]
         elif args.model == "dtree":
             importance = model.feature_importances_
+
+        accuracy = model.score(x_test, y_test)
+        # worst = np.argpartition(importance, 5)[:5]
+        # best = np.argpartition(importance, 5)[:5]
+        # ids_importance = np.concatenate((worst, best))
 
         # summarize feature importance
         if args.save:
@@ -75,6 +85,7 @@ def feature_importance_per_material(args):
             f = open(f"{MODEL_PATH}/{label}.txt", "w")
             for i,v in enumerate(importance):
                 f.write('Feature: {}, Score: {}\n'.format(i,v))
+            f.write(f"Accuracy: {accuracy}")
             f.close()
         else:
             for i,v in enumerate(importance):
