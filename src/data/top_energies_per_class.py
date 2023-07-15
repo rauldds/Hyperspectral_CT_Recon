@@ -43,7 +43,7 @@ def feature_importance_per_material(args):
         y_cur[~match_idx] = 0
 
         # Empty class: Skip
-        if y_cur.any(1) is False:
+        if ~np.any(y_cur == 1):
             continue
 
 
