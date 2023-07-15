@@ -11,10 +11,16 @@ from tqdm import tqdm
 import os
 from sklearn.model_selection import train_test_split
 from sklearn.inspection import permutation_importance
+from sklearn.decomposition import PCA
 
 
 PATH = os.path.join("experiments", "features")
-##
+
+def pca(data, k=20):
+    pca = PCA(n_components=k)
+    new_data = pca.fit_transform(data)
+    return new_data
+
 def feature_importance_per_material(args):
     """
     Calculates The importance of Hyperspectal Data using feature 
@@ -28,6 +34,9 @@ def feature_importance_per_material(args):
     # Stack all data, set per pixel
     X = torch.stack([train_dataset[i]["image"] for i in range(len(train_dataset))]).view(-1,128).numpy()
     y = torch.stack([train_dataset[i]["segmentation"].argmax(0) for i in range(len(train_dataset))]).view(-1,1).squeeze().numpy()
+
+    if args.pca:
+        X = pca(X)
 
     # Create Experiment directory
     if not os.path.exists("experiments"):
@@ -117,5 +126,6 @@ if __name__ == "__main__":
     parser.add_argument("-model", "--model", choices=['linreg', 'logreg', 'dtree'], default="logreg", help="Model to use for importance")
     parser.add_argument("-p", "--permutation", type=bool, default=False, help="Use Permutation Importance Techniques")
     parser.add_argument("-p_cores", "--permutation_cores", type=int, default=-1, help="How many cores to use for permutations")
+    parser.add_argument("-pca", "--pca", type=int, default=False, help="How many cores to use for permutations")
     args = parser.parse_args()
     feature_importance_per_material(args)
