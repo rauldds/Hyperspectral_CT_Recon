@@ -89,7 +89,7 @@ def feature_importance_per_material(args):
             if not os.path.exists(MODEL_PATH):
                 os.makedirs(MODEL_PATH)
             f = open(f"{MODEL_PATH}/{label}.txt", "w")
-            f.write(f"--------- Top {NO_FEATS} Worst and Best Features ----------")
+            f.write(f"--------- Top {NO_FEATS} Worst and Best Features ----------\n")
             for i in ids_importance:
                 f.write('Feature: {}, Score: {}\n'.format(i,importance[i]))
             f.write(f"Accuracy: {accuracy}")
