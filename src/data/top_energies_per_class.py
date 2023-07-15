@@ -47,16 +47,21 @@ def feature_importance_per_material(args):
         if args.model == "linreg":
             model = LinearRegression()
         elif args.model == "logreg": 
-            model = LogisticRegression
+            model = LogisticRegression()
         elif args.model == "dtree":
             model = DecisionTreeRegressor()
 
         MODEL_PATH = os.path.join(PATH, args.model)
         # fit the model
-        model.fit(X, y_cur)
+        model.fit(X=X, y=y_cur)
         # get importance
-        importance = model.feature_importances_
-        importance=np.sort(importance)
+        importance = None
+        if args.model == "linreg":
+            importance = model.coef_
+        elif args.model == "logreg": 
+            importance = model.coef_[0]
+        elif args.model == "dtree":
+            importance = model.feature_importances_
 
         # summarize feature importance
         if args.save:
