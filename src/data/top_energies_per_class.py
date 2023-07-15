@@ -1,18 +1,17 @@
 from argparse import ArgumentParser
 from matplotlib import pyplot as plt
-
 import torch
 from music_2d_dataset import MUSIC2DDataset
-import pandas as pd
 import numpy as np
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.linear_model import LinearRegression, LogisticRegression
 import matplotlib.pyplot as plt
-import seaborn as sns
 from music_2d_labels import MUSIC_2D_LABELS
 from tqdm import tqdm
 import os
 from sklearn.model_selection import train_test_split
+from sklearn.inspection import permutation_importance
+
 
 PATH = os.path.join("experiments", "features")
 ##
@@ -66,13 +65,19 @@ def feature_importance_per_material(args):
         # get importance
         importance = None
         if args.model == "linreg":
-            # Performs terribly
+            # Performs poorly
             importance = model.coef_
         elif args.model == "logreg": 
             # Performs well
             importance = model.coef_[0]
         elif args.model == "dtree":
+            # Performs poorly
             importance = model.feature_importances_
+
+        # Do permutation importance
+        if args.permutation:
+            results = permutation_importance(model, X, y, n_repeats=5, random_state=0, n_jobs=args.permutation_cores)
+            importance = results.importances_mean
 
         accuracy = model.score(x_test, y_test)
         worst = np.argpartition(importance, NO_FEATS)[:NO_FEATS]
@@ -100,8 +105,6 @@ def feature_importance_per_material(args):
             plt.show()
         plt.clf()
 
-    # sample = train_dataset[args.sample]
-
 
 if __name__ == "__main__":
     parser = ArgumentParser()
@@ -109,6 +112,8 @@ if __name__ == "__main__":
     parser.add_argument("-s", "--sample", type=int, default=0, help="Sample to Study")
     parser.add_argument("-sv", "--save", type=bool, default=True, help="Save Importances as Graphs")
     parser.add_argument("-n", "--no_features", type=int, default=3, help="Number of features to obtain from bottom and top")
-    parser.add_argument("-model", "--model", choices=['linreg', 'logreg', 'dtree'], default="dtree", help="Model to use for importance")
+    parser.add_argument("-model", "--model", choices=['linreg', 'logreg', 'dtree'], default="logreg", help="Model to use for importance")
+    parser.add_argument("-p", "--permutation", type=bool, default=False, help="Use Permutation Importance Techniques")
+    parser.add_argument("-p_cores", "--permutation_cores", type=int, default=-1, help="How many cores to use for permutations")
     args = parser.parse_args()
     feature_importance_per_material(args)
