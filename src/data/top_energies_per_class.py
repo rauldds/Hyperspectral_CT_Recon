@@ -24,6 +24,7 @@ def feature_importance_per_material(args):
     """
 
     train_dataset = MUSIC2DDataset(path2d=args.data_root, path3d=None,partition="train",spectrum="fullSpectrum", transform=None)
+    NO_FEATS = args.no_features
 
     # Stack all data, set per pixel
     X = torch.stack([train_dataset[i]["image"] for i in range(len(train_dataset))]).view(-1,128).numpy()
@@ -74,25 +75,25 @@ def feature_importance_per_material(args):
             importance = model.feature_importances_
 
         accuracy = model.score(x_test, y_test)
-        # worst = np.argpartition(importance, 5)[:5]
-        # best = np.argpartition(importance, 5)[:5]
-        # ids_importance = np.concatenate((worst, best))
+        worst = np.argpartition(importance, NO_FEATS)[:NO_FEATS]
+        best = np.argpartition(importance, -NO_FEATS)[-NO_FEATS:]
+        ids_importance = np.concatenate((worst, best))
 
         # summarize feature importance
         if args.save:
             if not os.path.exists(MODEL_PATH):
                 os.makedirs(MODEL_PATH)
             f = open(f"{MODEL_PATH}/{label}.txt", "w")
-            for i,v in enumerate(importance):
-                f.write('Feature: {}, Score: {}\n'.format(i,v))
+            for i in ids_importance:
+                f.write('Feature: {}, Score: {}\n'.format(i,importance[i]))
             f.write(f"Accuracy: {accuracy}")
             f.close()
         else:
-            for i,v in enumerate(importance):
-                print('Feature: {}, Score: {}'.format(i,v))
+            for i in ids_importance:
+                print('Feature: {}, Score: {}'.format(i,importance[i]))
         # plot feature importance
-        plt.bar([x for x in range(len(importance))], importance)
-        plt.title("Feature Importance class: " + label)
+        plt.bar(np.char.mod('%d', ids_importance), importance[ids_importance])
+        plt.title(f"Top and Bottom {NO_FEATS} Features for Class: {label.capitalize()}")
         if args.save:
             plt.savefig(f"{MODEL_PATH}/{label}.png")
         else:
@@ -107,6 +108,7 @@ if __name__ == "__main__":
     parser.add_argument("-dr", "--data_root", type=str, default="/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon/MUSIC2D_HDF5", help="Data root directory")
     parser.add_argument("-s", "--sample", type=int, default=0, help="Sample to Study")
     parser.add_argument("-sv", "--save", type=bool, default=True, help="Save Importances as Graphs")
+    parser.add_argument("-n", "--no_features", type=int, default=3, help="Number of features to obtain from bottom and top")
     parser.add_argument("-model", "--model", choices=['linreg', 'logreg', 'dtree'], default="dtree", help="Model to use for importance")
     args = parser.parse_args()
     feature_importance_per_material(args)
