@@ -11,6 +11,7 @@ from  src.DETCTCNN.data.music_2d_labels import MUSIC_2D_LABELS
 import torch
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
+import torchio as tio
 
 class Dataset(ABC):
     def __init__(self, path2d, path3d, transform, partition, spectrum, full_dataset):
@@ -61,6 +62,9 @@ class MUSIC2DDataset(Dataset):
         if self.transform is not None:
             segmentation = self.transform(segmentation)
         return segmentation
+
+    def _patchify(self,data):
+        print("hi")
     
     def _get_classes(self, segmentation):
         if not torch.is_tensor(segmentation):
@@ -174,10 +178,40 @@ if __name__ == "__main__":
     DATASET3D_PATH = "/media/rauldds/TOSHIBA EXT/MLMI/MUSIC3D_HDF5"
 
     dataset = MUSIC2DDataset(path2d=DATASET2D_PATH, path3d=DATASET3D_PATH,
-                             spectrum="reducedSpectrum", partition="train",full_dataset=True)
+                             spectrum="reducedSpectrum", partition="train",full_dataset=False)
     #print(dataset[:]["classes"])
     print(len(dataset[:]["image"]))
     print(len(dataset[:]["segmentation"]))
+    print(dataset[0]["image"].shape)
+    print(dataset[0]["segmentation"].shape)
+    #print(np.argmax(dataset[0]["segmentation"],0).unique())
+    dataset_list = []
+    for data in (dataset):
+        subject = tio.Subject(
+            image=tio.ScalarImage(tensor=data["image"].unsqueeze(0)),
+            segmentation=tio.LabelMap(tensor=torch.argmax(data["segmentation"],0).unsqueeze(0).repeat(1,10,1,1)),
+        )
+        dataset_list.append(subject)
+    SubjectDataset = tio.data.SubjectsDataset(dataset_list)
+    sampler = tio.GridSampler(patch_size=(10, 50, 50),subject=subject)
+    patches_queue = tio.Queue(
+        SubjectDataset,
+        max_length=300,
+        samples_per_volume=2,
+        sampler=sampler,
+        num_workers=1,
+    )
+
+    patches_loader = torch.utils.data.DataLoader(
+        patches_queue,
+        batch_size=16,
+        num_workers=0,  # this must be 0
+    )
+
+    for patches_batch in patches_loader:
+        inputs = patches_batch['image'][tio.DATA]  # key 't1' is in subject
+        targets = patches_batch['segmentation'][tio.DATA]  # key 'brain' is in subject
+        print(targets.unique())
 
 class MusicTransform:
     def __init__(self, resize=128):
