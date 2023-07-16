@@ -18,7 +18,7 @@ def pca_var(args):
     train_dataset = MUSIC2DDataset(path2d=args.data_root, path3d=None,partition="train",spectrum="fullSpectrum", transform=None)
     # Stack all data, set per pixel
     X = torch.stack([train_dataset[i]["image"] for i in range(len(train_dataset))]).view(-1,128).numpy()
-    pca = PCA(n_components=100)
+    pca = PCA(n_components=128)
     pca.fit(X)
     exp_var_pca = pca.explained_variance_ratio_
     cum_sum = exp_var_pca.cumsum()
