@@ -28,7 +28,7 @@ def pca_var(args):
     plt.axvline(x=80, color="red")
     plt.ylabel('Explained variance ratio')
     plt.xlabel('Principal component index')
-    plt.title(f"Explained Variance PCA, where k=80 explains 90%")
+    plt.title(f"Explained Variance PCA")
     plt.legend(loc='best')
     plt.tight_layout()
     plt.show()
