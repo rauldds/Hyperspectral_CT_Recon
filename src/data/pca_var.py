@@ -1,8 +1,9 @@
 from argparse import ArgumentParser
+import numpy
 import torch
 from music_2d_dataset import MUSIC2DDataset
 import os
-from sklearn.decomposition import PCA
+from sklearn.decomposition import PCA, KernelPCA
 import matplotlib.pyplot as plt
 
 
@@ -18,9 +19,18 @@ def pca_var(args):
     train_dataset = MUSIC2DDataset(path2d=args.data_root, path3d=None,partition="train",spectrum="fullSpectrum", transform=None)
     # Stack all data, set per pixel
     X = torch.stack([train_dataset[i]["image"] for i in range(len(train_dataset))]).view(-1,128).numpy()
-    pca = PCA(n_components=128)
-    pca.fit(X)
-    exp_var_pca = pca.explained_variance_ratio_
+    pca = None
+    exp_var_pca = 0
+    if args.method == "pca":
+        pca = PCA(n_components=128)
+        pca.fit(X)
+        exp_var_pca = pca.explained_variance_ratio_
+    elif args.method == "kpca":
+        X = X[0:130000]
+        pca = KernelPCA(n_components=128, kernel="sigmoid")
+        kpca_transform = pca.fit_transform(X)
+        explained_variance = numpy.var(kpca_transform, axis=0)
+        exp_var_pca = explained_variance / numpy.sum(explained_variance)
     cum_sum = exp_var_pca.cumsum()
     plt.bar(range(0,len(exp_var_pca)), exp_var_pca, alpha=0.5, align='center', label='Individual explained variance')
     plt.step(range(0,len(cum_sum)), cum_sum, where='mid',label='Cumulative explained variance')
@@ -40,5 +50,6 @@ if __name__ == "__main__":
     parser.add_argument("-dr", "--data_root", type=str, default="/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon/MUSIC2D_HDF5", help="Data root directory")
     parser.add_argument("-s", "--sample", type=int, default=0, help="Sample to Study")
     parser.add_argument("-sv", "--save", type=bool, default=True, help="Save Importances as Graphs")
+    parser.add_argument("-method", "--method", choices=['pca', 'kpca'], default="kpca", help="Method to use for dim red")
     args = parser.parse_args()
     pca_var(args)

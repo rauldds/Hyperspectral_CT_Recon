@@ -44,7 +44,10 @@ def feature_importance_per_material(args):
         if not os.path.exists(PATH):
             os.makedirs(PATH)
 
+    good_feats = np.empty((1,),dtype=int)
+    bad_feats = np.empty((1,), dtype=int)
     print(f"--------- Pixel-wise Binary Classifiers for {len(MUSIC_2D_LABELS)} Classes ---------")
+    MODEL_PATH = None
     for label, val in tqdm(MUSIC_2D_LABELS.items()):
         y_cur = np.copy(y)
 
@@ -92,6 +95,8 @@ def feature_importance_per_material(args):
         worst = np.argpartition(importance, NO_FEATS)[:NO_FEATS]
         best = np.argpartition(importance, -NO_FEATS)[-NO_FEATS:]
         ids_importance = np.concatenate((worst, best))
+        good_feats = np.concatenate((good_feats, best))
+        bad_feats = np.concatenate((bad_feats, worst))
 
         # summarize feature importance
         if args.save:
@@ -108,13 +113,31 @@ def feature_importance_per_material(args):
             for i in ids_importance:
                 print('Feature: {}, Score: {}'.format(i,importance[i]))
         # plot feature importance
-        plt.bar(np.char.mod('%d', ids_importance), importance[ids_importance])
-        plt.title(f"Top and Bottom {NO_FEATS} Features for Class: {label.capitalize()}")
         if args.save:
+            plt.bar(np.char.mod('%d', ids_importance), importance[ids_importance])
+            plt.title(f"Top and Bottom {NO_FEATS} Features for Class: {label.capitalize()}")
             plt.savefig(f"{MODEL_PATH}/{label}.png")
-        else:
-            plt.show()
         plt.clf()
+    good_feats = np.unique(good_feats[good_feats < 128], return_counts=True)
+    filter_good = good_feats[1] > 1
+    bad_feats = np.unique(bad_feats[bad_feats < 128], return_counts=True)
+    filter_bad = bad_feats[1] > 1
+    fig, ax = plt.subplots(2,1)
+    fig.tight_layout(pad=2.0)
+    # Plot the first bar chart
+    ax[0].bar(np.char.mod('%d', good_feats[0][filter_good]), good_feats[1][filter_good], width=2)
+    ax[0].set_title(f"Histogram top {NO_FEATS} features for all classes")
+
+    # Plot the second bar chart on top of the first one
+    ax[1].bar(np.char.mod('%d', bad_feats[0][filter_bad]), bad_feats[1][filter_bad], width=2)
+    ax[1].set_title(f"Histogram bottom {NO_FEATS} features for all classes")
+    fig.set_size_inches(14, 9)
+    if args.save:
+        plt.savefig(f"{MODEL_PATH}/histogram.png", dpi=600)
+    else:
+        plt.show()
+    plt.clf()
+
 
 
 if __name__ == "__main__":
@@ -122,9 +145,9 @@ if __name__ == "__main__":
     parser.add_argument("-dr", "--data_root", type=str, default="/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon/MUSIC2D_HDF5", help="Data root directory")
     parser.add_argument("-s", "--sample", type=int, default=0, help="Sample to Study")
     parser.add_argument("-sv", "--save", type=bool, default=True, help="Save Importances as Graphs")
-    parser.add_argument("-n", "--no_features", type=int, default=3, help="Number of features to obtain from bottom and top")
+    parser.add_argument("-n", "--no_features", type=int, default=10, help="Number of features to obtain from bottom and top")
     parser.add_argument("-model", "--model", choices=['linreg', 'logreg', 'dtree'], default="logreg", help="Model to use for importance")
-    parser.add_argument("-p", "--permutation", type=bool, default=False, help="Use Permutation Importance Techniques")
+    parser.add_argument("-p", "--permutation", type=bool, default=True, help="Use Permutation Importance Techniques")
     parser.add_argument("-p_cores", "--permutation_cores", type=int, default=-1, help="How many cores to use for permutations")
     parser.add_argument("-pca", "--pca", type=int, default=False, help="How many cores to use for permutations")
     args = parser.parse_args()
