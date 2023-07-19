@@ -211,7 +211,7 @@ if __name__ == "__main__":
     for patches_batch in patches_loader:
         inputs = patches_batch['image'][tio.DATA]  # key 't1' is in subject
         targets = patches_batch['segmentation'][tio.DATA]  # key 'brain' is in subject
-        print(targets.unique())
+        print(targets.shape)
 
 class MusicTransform:
     def __init__(self, resize=128):
