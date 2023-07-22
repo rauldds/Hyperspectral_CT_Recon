@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
-from losses import DiceLoss, CEDiceLoss, FocalLoss
-from model import get_model
+from sys import path
+from src.DETCTCNN.model.losses import DiceLoss, CEDiceLoss, FocalLoss
+from src.DETCTCNN.model.model import get_model
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from src.DETCTCNN.data.music_2d_labels import MUSIC_2D_LABELS, MUSIC_2D_PALETTE
@@ -11,6 +12,7 @@ from src.DETCTCNN.model.utils import calculate_min_max, class_weights, image_fro
 MUSIC2DDataset = music_2d_dataset.MUSIC2DDataset
 from torch.utils.data import DataLoader
 import torch.backends
+import torchio as tio
 
 LABELS_SIZE = len(MUSIC_2D_LABELS)
 device = torch.device("cuda" if torch.cuda.is_available() else 
@@ -36,19 +38,92 @@ def main(hparams):
 
     
     # transform = None
-    train_dataset = MUSIC2DDataset(path2d=hparams.data_root, path3d=None,partition="train",spectrum="reducedSpectrum", transform=transform)
+    path2d = hparams.data_root + "/MUSIC2D_HDF5"
+    path3d = hparams.data_root + "/MUSIC3D_HDF5"
+    train_dataset = MUSIC2DDataset(path2d=path2d, path3d=path3d,
+                                   partition="train", spectrum="reducedSpectrum",
+                                   transform=transform, full_dataset=False)
     if hparams.normalize_data:
         mean, std = calculate_data_statistics(train_dataset.images)
         train_dataset.images = list(map(lambda x: standardize(x,mean,std) , train_dataset.images))
         min, max  = calculate_min_max(train_dataset.images)
         train_dataset.images = list(map(lambda x: normalize(x,min,max) , train_dataset.images))
-    train_loader = DataLoader(train_dataset, batch_size=hparams.batch_size, shuffle=True)
+    
+    # List to store samples from dataset classes
+    train_list = []
+    val_list = []
 
-    val_dataset = MUSIC2DDataset(path2d=hparams.data_root, path3d=None, partition="valid", spectrum="reducedSpectrum", transform=transform)
+    # START CONFIGS to load train dataset for patch learning
+    # Define how many patches to do per volume based on the patch size
+    patches_for_full_volume = int(128/hparams.patch_size)*2
+    # Number of used energy levels
+    energy_levels = 10
+    if hparams.spectrum != "reducedSpectrum":
+        energy_levels = 128
+    
+    # Convert elements from dataset class to torch io subjects and store them in a list
+    for data in (train_dataset):
+        subject = tio.Subject(
+            image=tio.ScalarImage(tensor=data["image"].unsqueeze(0)),
+            segmentation=tio.LabelMap(
+                tensor=torch.argmax(data["segmentation"],0).unsqueeze(0).repeat(1,energy_levels,1,1)
+                ),
+        )
+        train_list.append(subject)
+    
+    # Store all subjects in a torch io subjects dataset
+    TrainSubjectDataset = tio.data.SubjectsDataset(train_list)
+
+    # Define the type of sampler that'll be used to generate patches. GridSampler goes through the volume
+    # in an orderly manner. Other sampler alternatives sample randomly or based on a certain label.
+    # https://torchio.readthedocs.io/patches/patch_training.html
+    train_sampler = tio.GridSampler(patch_size=(energy_levels,
+                                                hparams.patch_size,
+                                                hparams.patch_size),
+                                    subject=subject)
+    # Queue that controls the loaded patches, provides them for each batch iteration
+    train_patches_queue = tio.Queue(
+                                    TrainSubjectDataset,
+                                    max_length=150,
+                                    samples_per_volume=patches_for_full_volume,
+                                    sampler=train_sampler,
+                                    num_workers=1,
+    )
+    # END CONFIGS
+    
+    train_loader = DataLoader(train_patches_queue, batch_size=hparams.batch_size, shuffle=True)
+
+    val_dataset = MUSIC2DDataset(path2d=path2d, path3d=path3d,
+                                 partition="valid", spectrum="reducedSpectrum", 
+                                 transform=transform, full_dataset=False)
     if hparams.normalize_data:
         val_dataset.images = list(map(lambda x: standardize(x,mean,std) , val_dataset.images))
         val_dataset.images = list(map(lambda x: normalize(x,min,max) , val_dataset.images))
-    val_loader = DataLoader(val_dataset)
+    
+    # START CONFIGS to load validation dataset for patch learning (as described in lines above)
+    for data in (val_dataset):
+        subject = tio.Subject(
+            image=tio.ScalarImage(tensor=data["image"].unsqueeze(0)),
+            segmentation=tio.LabelMap(
+                tensor=torch.argmax(data["segmentation"],0).unsqueeze(0).repeat(1,energy_levels,1,1)
+                ),
+        )
+        val_list.append(subject)
+    ValSubjectDataset = tio.data.SubjectsDataset(val_list)
+    val_sampler = tio.GridSampler(patch_size=(energy_levels,
+                                                hparams.patch_size,
+                                                hparams.patch_size),
+                                    subject=subject)
+    val_patches_queue = tio.Queue(
+                                    ValSubjectDataset,
+                                    max_length=150,
+                                    samples_per_volume=patches_for_full_volume,
+                                    sampler=val_sampler,
+                                    num_workers=1,
+    )
+    #END CONFIGS
+
+    val_loader = DataLoader(val_patches_queue)
 
     dice_weights = class_weights(dataset=train_dataset, n_classes=len(MUSIC_2D_LABELS))
     # Check dice weights used to weight loss function
@@ -85,7 +160,8 @@ def main(hparams):
         train_accuracy = 0.0
         for i, data in enumerate(train_loader, 0):
             # get the inputs; data is a list of [inputs, labels]
-            X, y  = data['image'], data['segmentation'].argmax(1)
+            X  = data['image'][tio.DATA].squeeze(dim=1)
+            y =  torch.max(data['segmentation'][tio.DATA].squeeze(dim=1),dim=1)[0]
             X = X.to(device)
             y = y.to(device)
             
@@ -137,7 +213,8 @@ def main(hparams):
                 val_iou = 0.0
                 for val_data in val_loader:
 
-                    val_X, val_y = val_data["image"].to(device), val_data["segmentation"].argmax(1).to(device)
+                    val_X = val_data["image"][tio.DATA].squeeze(dim=1).to(device)
+                    val_y = (torch.max(val_data['segmentation'][tio.DATA].squeeze(dim=1),dim=1)[0]).to(device)
 
                     with torch.no_grad():
                         val_pred = model(val_X)
@@ -159,15 +236,16 @@ def main(hparams):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("-dr", "--data_root", type=str, default="/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon/MUSIC2D_HDF5", help="Data root directory")
-    # parser.add_argument("-dr", "--data_root", type=str, default="/media/davidg-dl/Second SSD/MUSIC2D_HDF5", help="Data root directory")
+    parser.add_argument("-dr", "--data_root", type=str, default="/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon", help="Data root directory")
     parser.add_argument("-ve", "--validate_every", type=int, default=10, help="Validate after each # of iterations")
     parser.add_argument("-pe", "--print_every", type=int, default=10, help="print info after each # of epochs")
     parser.add_argument("-e", "--epochs", type=int, default=3000, help="Number of maximum training epochs")
     parser.add_argument("-bs", "--batch_size", type=int, default=4, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
-    parser.add_argument("-lr", "--learning_rate", type=int, default=0.0005, help="Learning rate")
+    parser.add_argument("-lr", "--learning_rate", type=float, default=0.001, help="Learning rate")
     parser.add_argument("-loss", "--loss", type=str, default="focal", help="Loss function")
     parser.add_argument("-n", "--normalize_data", type=bool, default=True, help="Loss function")
+    parser.add_argument("-sp", "--spectrum", type=str, default="reducedSpectrum", help="Spectrum of MUSIC dataset")
+    parser.add_argument("-ps", "--patch_size", type=int, default=64, help="2D patch size, should be multiple of 128")
     args = parser.parse_args()
     main(args)
