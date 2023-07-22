@@ -59,9 +59,11 @@ docs/_build/
 .idea/
 *.xml
 
+#CKPTS
+*.pt
+
+# FOLDERS
 src/DETCTCNN/model/runs/
 runs/
-src/DETCTCNN/model/model.pt
-src/DETCTCNN/model/__pycache__/
 img/
 checkpoints/
