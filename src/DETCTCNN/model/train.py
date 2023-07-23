@@ -66,7 +66,7 @@ def main(hparams):
     energy_levels = 10
     if hparams.spectrum != "reducedSpectrum":
         energy_levels = 128
-    if hparams.dim_red:
+    if hparams.dim_red != "none":
         energy_levels = hparams.no_dim_red
     
     # Convert elements from dataset class to torch io subjects and store them in a list
@@ -262,7 +262,7 @@ if __name__ == "__main__":
     parser.add_argument("-n", "--normalize_data", type=bool, default=True, help="Loss function")
     parser.add_argument("-sp", "--spectrum", type=str, default="fullSpectrum", help="Spectrum of MUSIC dataset")
     parser.add_argument("-ps", "--patch_size", type=int, default=64, help="2D patch size, should be multiple of 128")
-    parser.add_argument("-dim_red", "--dim_red", choices=['none', 'pca'], default="pca", help="Use dimensionality reduction")
-    parser.add_argument("-no_dim_red", "--no_dim_red", type=int, default=55, help="Target no. dimensions for dim reduction")
+    parser.add_argument("-dim_red", "--dim_red", choices=['none', 'pca'], default="none", help="Use dimensionality reduction")
+    parser.add_argument("-no_dim_red", "--no_dim_red", type=int, default=5, help="Target no. dimensions for dim reduction")
     args = parser.parse_args()
     main(args)
