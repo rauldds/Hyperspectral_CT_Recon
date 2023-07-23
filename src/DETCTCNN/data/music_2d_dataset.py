@@ -224,10 +224,10 @@ class MusicTransform:
     def __init__(self, resize=128):
         self.resize = resize
         self.aug = A.Compose([
-        A.CenterCrop(85,85),
+        # A.CenterCrop(85,85),
         A.Resize(resize,resize),
-        A.RandomRotate90(),
-        A.Affine(),
+        # A.RandomRotate90(),
+        # A.Affine(),
         # A.GaussNoise(var_limit=(0.01,0.1)),
         ToTensorV2(),
     ])
