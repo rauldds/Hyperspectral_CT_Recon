@@ -19,14 +19,15 @@ def pca_var(args):
     train_dataset = MUSIC2DDataset(path2d=args.data_root, path3d=None,partition="train",spectrum="fullSpectrum", transform=None)
     # Stack all data, set per pixel
     if args.sample != -1:
-        X = train_dataset[args.sample]["image"].reshape(-1,128).numpy()
+        X = train_dataset[args.sample]["image"].permute((1,2,0))
+        X = X.reshape(-1,128).numpy()
     else:
-        X = torch.stack([train_dataset[i]["image"] for i in range(len(train_dataset))]).view(-1,128).numpy()
+        X = torch.stack([train_dataset[i]["image"].permute((1,2,0)) for i in range(len(train_dataset))]).view(-1,128).numpy()
 
     pca = None
     exp_var_pca = 0
     if args.method == "pca":
-        pca = PCA(n_components=128)
+        pca = PCA(n_components=128, whiten=True)
         pca.fit(X)
         exp_var_pca = pca.explained_variance_ratio_
     elif args.method == "kpca":
@@ -53,6 +54,6 @@ if __name__ == "__main__":
     parser.add_argument("-dr", "--data_root", type=str, default="/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon/MUSIC2D_HDF5", help="Data root directory")
     parser.add_argument("-s", "--sample", type=int, default=20, help="Sample to Study")
     parser.add_argument("-sv", "--save", type=bool, default=True, help="Save Importances as Graphs")
-    parser.add_argument("-method", "--method", choices=['pca', 'kpca'], default="kpca", help="Method to use for dim red")
+    parser.add_argument("-method", "--method", choices=['pca', 'kpca'], default="pca", help="Method to use for dim red")
     args = parser.parse_args()
     pca_var(args)
