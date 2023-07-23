@@ -27,7 +27,7 @@ def pca_var(args):
     pca = None
     exp_var_pca = 0
     if args.method == "pca":
-        pca = PCA(n_components=128, whiten=True)
+        pca = PCA(n_components=128, whiten=False)
         pca.fit(X)
         exp_var_pca = pca.explained_variance_ratio_
     elif args.method == "kpca":
@@ -36,10 +36,12 @@ def pca_var(args):
         explained_variance = numpy.var(kpca_transform, axis=0)
         exp_var_pca = explained_variance / numpy.sum(explained_variance)
     cum_sum = exp_var_pca.cumsum()
+    ret_variance = numpy.argwhere(cum_sum >= 0.9)[0][0]
+
     plt.bar(range(0,len(exp_var_pca)), exp_var_pca, alpha=0.5, align='center', label='Individual explained variance')
     plt.step(range(0,len(cum_sum)), cum_sum, where='mid',label='Cumulative explained variance')
     plt.axhline(y=0.9, color="red")
-    plt.axvline(x=80, color="red")
+    plt.axvline(x=ret_variance, color="red")
     plt.ylabel('Explained variance ratio')
     plt.xlabel('Principal component index')
     plt.title(f"Explained Variance PCA")
@@ -52,7 +54,7 @@ def pca_var(args):
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("-dr", "--data_root", type=str, default="/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon/MUSIC2D_HDF5", help="Data root directory")
-    parser.add_argument("-s", "--sample", type=int, default=20, help="Sample to Study")
+    parser.add_argument("-s", "--sample", type=int, default=-1, help="Sample to Study")
     parser.add_argument("-sv", "--save", type=bool, default=True, help="Save Importances as Graphs")
     parser.add_argument("-method", "--method", choices=['pca', 'kpca'], default="pca", help="Method to use for dim red")
     args = parser.parse_args()
