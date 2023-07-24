@@ -13,6 +13,8 @@ import albumentations as A
 from albumentations.pytorch import ToTensorV2
 import torchio as tio
 
+from data_utils import dimensionality_reduction
+
 class Dataset(ABC):
     def __init__(self, path2d, path3d, transform, partition, spectrum, full_dataset):
         self.path2d = path2d
@@ -35,13 +37,15 @@ class Dataset(ABC):
 class MUSIC2DDataset(Dataset):
     def __init__(self, *args, path2d=None, path3d=None, 
                 transform=None, full_dataset=False, partition="train", 
-                spectrum="fullSpectrum", **kwargs):
+                spectrum="fullSpectrum", dim_red=None, no_dim_red=10, **kwargs):
         super().__init__(*args, path2d=path2d, path3d=path3d,
                          transform=transform, partition=partition, 
                          spectrum=spectrum, full_dataset=full_dataset, **kwargs)
         self.images = []
         self.classes = []
         self.segmentations = []
+        self.dim_red = dim_red
+        self.no_dim_red = no_dim_red
         #Collect all the class names
         for label in MUSIC_2D_LABELS:
             self.classes.append(label)
@@ -133,6 +137,8 @@ class MUSIC2DDataset(Dataset):
                 data = np.array(f['data']['value'], order='F')
                 if self.spectrum=="fullSpectrum":
                     data = data.squeeze(1)
+                # Apply dimensionality reduction method to hyperspectral channels
+                data = dimensionality_reduction(data, self.dim_red, data.shape, self.no_dim_red)
                 data = torch.from_numpy(data).float()
                 self.images.append(data)
                 reconstruction_file.close()
@@ -158,6 +164,7 @@ class MUSIC2DDataset(Dataset):
                 #Collect image list
                 with reconstruction_file as f:
                     data = np.array(f['data']['value'], order='F')
+                    data = dimensionality_reduction(data, self.dim_red, data.shape, self.no_dim_red)
                     data = torch.from_numpy(data).float()
                     # TODO: Might be a more optimal way to do this hehe
                     for i in range(data.shape[1]):
@@ -217,10 +224,10 @@ class MusicTransform:
     def __init__(self, resize=128):
         self.resize = resize
         self.aug = A.Compose([
-        A.CenterCrop(85,85),
+        # A.CenterCrop(85,85),
         A.Resize(resize,resize),
-        A.RandomRotate90(),
-        A.Affine(),
+        # A.RandomRotate90(),
+        # A.Affine(),
         # A.GaussNoise(var_limit=(0.01,0.1)),
         ToTensorV2(),
     ])

@@ -8,7 +8,9 @@ __pycache__/
 
 # C extensions
 *.so
-
+src/compression/experiments
+src/data/experiments
+experiments
 # Distribution / packaging
 bin/
 build/

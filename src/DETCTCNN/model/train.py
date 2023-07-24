@@ -40,9 +40,15 @@ def main(hparams):
     # transform = None
     path2d = hparams.data_root + "/MUSIC2D_HDF5"
     path3d = hparams.data_root + "/MUSIC3D_HDF5"
-    train_dataset = MUSIC2DDataset(path2d=path2d, path3d=path3d,
-                                   partition="train", spectrum="reducedSpectrum",
-                                   transform=transform, full_dataset=False)
+    train_dataset = MUSIC2DDataset(
+        path2d=path2d, path3d=path3d,
+        partition="train", 
+        spectrum=hparams.spectrum,
+        transform=transform, 
+        full_dataset=False, 
+        dim_red = hparams.dim_red,
+        no_dim_red = hparams.no_dim_red
+    )
     if hparams.normalize_data:
         mean, std = calculate_data_statistics(train_dataset.images)
         train_dataset.images = list(map(lambda x: standardize(x,mean,std) , train_dataset.images))
@@ -60,6 +66,8 @@ def main(hparams):
     energy_levels = 10
     if hparams.spectrum != "reducedSpectrum":
         energy_levels = 128
+    if hparams.dim_red != "none":
+        energy_levels = hparams.no_dim_red
     
     # Convert elements from dataset class to torch io subjects and store them in a list
     for data in (train_dataset):
@@ -93,9 +101,16 @@ def main(hparams):
     
     train_loader = DataLoader(train_patches_queue, batch_size=hparams.batch_size, shuffle=True)
 
-    val_dataset = MUSIC2DDataset(path2d=path2d, path3d=path3d,
-                                 partition="valid", spectrum="reducedSpectrum", 
-                                 transform=transform, full_dataset=False)
+    val_dataset = MUSIC2DDataset(
+        path2d=path2d, path3d=path3d,
+        partition="valid",
+        spectrum=hparams.spectrum, 
+        transform=transform, 
+        full_dataset=False,
+        dim_red = hparams.dim_red,
+        no_dim_red = hparams.no_dim_red
+    )
+    
     if hparams.normalize_data:
         val_dataset.images = list(map(lambda x: standardize(x,mean,std) , val_dataset.images))
         val_dataset.images = list(map(lambda x: normalize(x,min,max) , val_dataset.images))
@@ -131,7 +146,7 @@ def main(hparams):
     # print(dice_weights)
 
 
-    model = get_model(input_channels=10, n_labels=hparams.n_labels, use_bn=True, basic_out_channel=64, depth=3)
+    model = get_model(input_channels=energy_levels, n_labels=hparams.n_labels, use_bn=True, basic_out_channel=64, depth=3)
     model.to(device=device)
     
     optimizer = torch.optim.Adam(model.parameters(), betas=([0.9, 0.999]), lr = hparams.learning_rate)
@@ -245,7 +260,9 @@ if __name__ == "__main__":
     parser.add_argument("-lr", "--learning_rate", type=float, default=0.001, help="Learning rate")
     parser.add_argument("-loss", "--loss", type=str, default="focal", help="Loss function")
     parser.add_argument("-n", "--normalize_data", type=bool, default=True, help="Loss function")
-    parser.add_argument("-sp", "--spectrum", type=str, default="reducedSpectrum", help="Spectrum of MUSIC dataset")
+    parser.add_argument("-sp", "--spectrum", type=str, default="fullSpectrum", help="Spectrum of MUSIC dataset")
     parser.add_argument("-ps", "--patch_size", type=int, default=64, help="2D patch size, should be multiple of 128")
+    parser.add_argument("-dim_red", "--dim_red", choices=['none', 'pca'], default="none", help="Use dimensionality reduction")
+    parser.add_argument("-no_dim_red", "--no_dim_red", type=int, default=5, help="Target no. dimensions for dim reduction")
     args = parser.parse_args()
     main(args)
