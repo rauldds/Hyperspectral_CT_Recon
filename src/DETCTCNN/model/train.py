@@ -1,5 +1,6 @@
 from argparse import ArgumentParser
 from sys import path
+from typing import Dict
 from src.DETCTCNN.model.losses import DiceLoss, CEDiceLoss, FocalLoss
 from src.DETCTCNN.model.model import get_model
 import torch
@@ -89,6 +90,15 @@ def main(hparams):
                                                 hparams.patch_size,
                                                 hparams.patch_size),
                                     subject=subject)
+
+    if hparams.sample_strategy == "label":
+        label_probabilities : Dict[int, float] = {i: (0 if i == 0 else 1) for i in range(len(MUSIC_2D_LABELS))}
+        train_sampler = tio.data.LabelSampler(
+            patch_size=(energy_levels,
+                        hparams.patch_size,
+                        hparams.patch_size),
+            label_probabilities=label_probabilities,
+        )
     # Queue that controls the loaded patches, provides them for each batch iteration
     train_patches_queue = tio.Queue(
                                     TrainSubjectDataset,
@@ -254,15 +264,16 @@ if __name__ == "__main__":
     parser.add_argument("-dr", "--data_root", type=str, default="/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon", help="Data root directory")
     parser.add_argument("-ve", "--validate_every", type=int, default=10, help="Validate after each # of iterations")
     parser.add_argument("-pe", "--print_every", type=int, default=10, help="print info after each # of epochs")
-    parser.add_argument("-e", "--epochs", type=int, default=3000, help="Number of maximum training epochs")
-    parser.add_argument("-bs", "--batch_size", type=int, default=4, help="Batch size")
+    parser.add_argument("-e", "--epochs", type=int, default=1000, help="Number of maximum training epochs")
+    parser.add_argument("-bs", "--batch_size", type=int, default=8, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
     parser.add_argument("-lr", "--learning_rate", type=float, default=0.001, help="Learning rate")
-    parser.add_argument("-loss", "--loss", type=str, default="focal", help="Loss function")
+    parser.add_argument("-loss", "--loss", type=str, default="ce", help="Loss function")
     parser.add_argument("-n", "--normalize_data", type=bool, default=True, help="Loss function")
-    parser.add_argument("-sp", "--spectrum", type=str, default="fullSpectrum", help="Spectrum of MUSIC dataset")
-    parser.add_argument("-ps", "--patch_size", type=int, default=64, help="2D patch size, should be multiple of 128")
+    parser.add_argument("-sp", "--spectrum", type=str, default="reducedSpectrum", help="Spectrum of MUSIC dataset")
+    parser.add_argument("-ps", "--patch_size", type=int, default=32, help="2D patch size, should be multiple of 128")
     parser.add_argument("-dim_red", "--dim_red", choices=['none', 'pca'], default="none", help="Use dimensionality reduction")
     parser.add_argument("-no_dim_red", "--no_dim_red", type=int, default=5, help="Target no. dimensions for dim reduction")
+    parser.add_argument("-sample_strategy", "--sample_strategy", choices=['grid', 'label'], default="label", help="Type of sampler to use for patches")
     args = parser.parse_args()
     main(args)
