@@ -35,8 +35,7 @@ def calculate_accuracy(pred_tensor, target_tensor):
 def main(hparams):
     
     # Initialize Transformations
-    transform = music_2d_dataset.MusicTransform(resize=128)
-
+    transform = music_2d_dataset.JointTransform2D(crop=None, p_flip=0.5, color_jitter_params=None, long_mask=True)
     
     # transform = None
     path2d = hparams.data_root + "/MUSIC2D_HDF5"
@@ -70,46 +69,47 @@ def main(hparams):
     if hparams.dim_red != "none":
         energy_levels = hparams.no_dim_red
     
-    # Convert elements from dataset class to torch io subjects and store them in a list
-    for data in (train_dataset):
-        subject = tio.Subject(
-            image=tio.ScalarImage(tensor=data["image"].unsqueeze(0)),
-            segmentation=tio.LabelMap(
-                tensor=torch.argmax(data["segmentation"],0).unsqueeze(0).repeat(1,energy_levels,1,1)
-                ),
-        )
-        train_list.append(subject)
+    # # Convert elements from dataset class to torch io subjects and store them in a list
+    # for data in (train_dataset):
+    #     subject = tio.Subject(
+    #         image=tio.ScalarImage(tensor=data["image"].unsqueeze(0)),
+    #         segmentation=tio.LabelMap(
+    #             tensor=torch.argmax(data["segmentation"],0).unsqueeze(0).repeat(1,energy_levels,1,1)
+    #             ),
+    #     )
+    #     train_list.append(subject)
     
-    # Store all subjects in a torch io subjects dataset
-    TrainSubjectDataset = tio.data.SubjectsDataset(train_list)
+    # # Store all subjects in a torch io subjects dataset
+    # TrainSubjectDataset = tio.data.SubjectsDataset(train_list)
 
-    # Define the type of sampler that'll be used to generate patches. GridSampler goes through the volume
-    # in an orderly manner. Other sampler alternatives sample randomly or based on a certain label.
-    # https://torchio.readthedocs.io/patches/patch_training.html
-    train_sampler = tio.GridSampler(patch_size=(energy_levels,
-                                                hparams.patch_size,
-                                                hparams.patch_size),
-                                    subject=subject)
+    # # Define the type of sampler that'll be used to generate patches. GridSampler goes through the volume
+    # # in an orderly manner. Other sampler alternatives sample randomly or based on a certain label.
+    # # https://torchio.readthedocs.io/patches/patch_training.html
+    # train_sampler = tio.GridSampler(patch_size=(energy_levels,
+    #                                             hparams.patch_size,
+    #                                             hparams.patch_size),
+    #                                 subject=subject)
 
-    if hparams.sample_strategy == "label":
-        label_probabilities : Dict[int, float] = {i: (0 if i == 0 else 1) for i in range(len(MUSIC_2D_LABELS))}
-        train_sampler = tio.data.LabelSampler(
-            patch_size=(energy_levels,
-                        hparams.patch_size,
-                        hparams.patch_size),
-            label_probabilities=label_probabilities,
-        )
-    # Queue that controls the loaded patches, provides them for each batch iteration
-    train_patches_queue = tio.Queue(
-                                    TrainSubjectDataset,
-                                    max_length=150,
-                                    samples_per_volume=patches_for_full_volume,
-                                    sampler=train_sampler,
-                                    num_workers=1,
-    )
+    # if hparams.sample_strategy == "label":
+    #     label_probabilities : Dict[int, float] = {i: (0 if i == 0 else 1) for i in range(len(MUSIC_2D_LABELS))}
+    #     train_sampler = tio.data.LabelSampler(
+    #         patch_size=(energy_levels,
+    #                     hparams.patch_size,
+    #                     hparams.patch_size),
+    #         label_probabilities=label_probabilities,
+    #     )
+    # # Queue that controls the loaded patches, provides them for each batch iteration
+    # train_patches_queue = tio.Queue(
+    #                                 TrainSubjectDataset,
+    #                                 max_length=150,
+    #                                 samples_per_volume=patches_for_full_volume,
+    #                                 sampler=train_sampler,
+    #                                 num_workers=1,
+    # )
     # END CONFIGS
     
-    train_loader = DataLoader(train_patches_queue, batch_size=hparams.batch_size, shuffle=True)
+    # train_loader = DataLoader(train_patches_queue, batch_size=hparams.batch_size, shuffle=True)
+    train_loader = DataLoader(dataset=train_dataset, batch_size=hparams.batch_size)
 
     val_dataset = MUSIC2DDataset(
         path2d=path2d, path3d=path3d,
@@ -126,29 +126,30 @@ def main(hparams):
         val_dataset.images = list(map(lambda x: normalize(x,min,max) , val_dataset.images))
     
     # START CONFIGS to load validation dataset for patch learning (as described in lines above)
-    for data in (val_dataset):
-        subject = tio.Subject(
-            image=tio.ScalarImage(tensor=data["image"].unsqueeze(0)),
-            segmentation=tio.LabelMap(
-                tensor=torch.argmax(data["segmentation"],0).unsqueeze(0).repeat(1,energy_levels,1,1)
-                ),
-        )
-        val_list.append(subject)
-    ValSubjectDataset = tio.data.SubjectsDataset(val_list)
-    val_sampler = tio.GridSampler(patch_size=(energy_levels,
-                                                hparams.patch_size,
-                                                hparams.patch_size),
-                                    subject=subject)
-    val_patches_queue = tio.Queue(
-                                    ValSubjectDataset,
-                                    max_length=150,
-                                    samples_per_volume=patches_for_full_volume,
-                                    sampler=val_sampler,
-                                    num_workers=1,
-    )
-    #END CONFIGS
+    # for data in (val_dataset):
+    #     subject = tio.Subject(
+    #         image=tio.ScalarImage(tensor=data["image"].unsqueeze(0)),
+    #         segmentation=tio.LabelMap(
+    #             tensor=torch.argmax(data["segmentation"],0).unsqueeze(0).repeat(1,energy_levels,1,1)
+    #             ),
+    #     )
+    #     val_list.append(subject)
+    # ValSubjectDataset = tio.data.SubjectsDataset(val_list)
+    # val_sampler = tio.GridSampler(patch_size=(energy_levels,
+    #                                             hparams.patch_size,
+    #                                             hparams.patch_size),
+    #                                 subject=subject)
+    # val_patches_queue = tio.Queue(
+    #                                 ValSubjectDataset,
+    #                                 max_length=150,
+    #                                 samples_per_volume=patches_for_full_volume,
+    #                                 sampler=val_sampler,
+    #                                 num_workers=1,
+    # )
+    # #END CONFIGS
 
-    val_loader = DataLoader(val_patches_queue)
+    # val_loader = DataLoader(val_patches_queue)
+    val_loader = DataLoader(dataset=val_dataset, batch_size=hparams.batch_size)
 
     dice_weights = class_weights(dataset=train_dataset, n_classes=len(MUSIC_2D_LABELS))
     # Check dice weights used to weight loss function
@@ -156,7 +157,7 @@ def main(hparams):
     # print(dice_weights)
 
 
-    model = get_model(input_channels=energy_levels, n_labels=hparams.n_labels, use_bn=True, basic_out_channel=64, depth=3)
+    model = get_model(input_channels=energy_levels, n_labels=hparams.n_labels, use_bn=True, basic_out_channel=32, depth=2, dropout=0.2)
     model.to(device=device)
     
     optimizer = torch.optim.Adam(model.parameters(), betas=([0.9, 0.999]), lr = hparams.learning_rate)
@@ -185,8 +186,7 @@ def main(hparams):
         train_accuracy = 0.0
         for i, data in enumerate(train_loader, 0):
             # get the inputs; data is a list of [inputs, labels]
-            X  = data['image'][tio.DATA].squeeze(dim=1)
-            y =  torch.max(data['segmentation'][tio.DATA].squeeze(dim=1),dim=1)[0]
+            X, y  = data['image'], data['segmentation'].argmax(1)
             X = X.to(device)
             y = y.to(device)
             
@@ -194,7 +194,7 @@ def main(hparams):
 
             # Forward Pass
             y_hat = model(X)
-            loss = loss_criterion(y_hat, y)
+            loss = loss_criterion(y_hat, y) * 1000
 
             # backward pass
             loss.backward()
@@ -238,8 +238,9 @@ def main(hparams):
                 val_iou = 0.0
                 for val_data in val_loader:
 
-                    val_X = val_data["image"][tio.DATA].squeeze(dim=1).to(device)
-                    val_y = (torch.max(val_data['segmentation'][tio.DATA].squeeze(dim=1),dim=1)[0]).to(device)
+                    val_X, val_y  = val_data['image'], val_data['segmentation'].argmax(1)
+                    val_X = val_X.to(device)
+                    val_y = val_y.to(device)
 
                     with torch.no_grad():
                         val_pred = model(val_X)
@@ -253,6 +254,8 @@ def main(hparams):
                 val_acc /= len(val_loader)
                 val_iou /= len(val_loader)
 
+                val_loss  = val_loss * 1000
+
                 tb.add_scalar("Val_Loss", val_loss, epoch)
                 tb.add_scalar("Val_Accuracy", val_acc, epoch)
                 tb.add_scalar("Val_IOU", val_iou, epoch)
@@ -264,14 +267,14 @@ if __name__ == "__main__":
     parser.add_argument("-dr", "--data_root", type=str, default="/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon", help="Data root directory")
     parser.add_argument("-ve", "--validate_every", type=int, default=10, help="Validate after each # of iterations")
     parser.add_argument("-pe", "--print_every", type=int, default=10, help="print info after each # of epochs")
-    parser.add_argument("-e", "--epochs", type=int, default=1000, help="Number of maximum training epochs")
-    parser.add_argument("-bs", "--batch_size", type=int, default=8, help="Batch size")
+    parser.add_argument("-e", "--epochs", type=int, default=300, help="Number of maximum training epochs")
+    parser.add_argument("-bs", "--batch_size", type=int, default=4, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
-    parser.add_argument("-lr", "--learning_rate", type=float, default=0.001, help="Learning rate")
-    parser.add_argument("-loss", "--loss", type=str, default="ce", help="Loss function")
+    parser.add_argument("-lr", "--learning_rate", type=float, default=0.0005, help="Learning rate")
+    parser.add_argument("-loss", "--loss", type=str, default="focal", help="Loss function")
     parser.add_argument("-n", "--normalize_data", type=bool, default=True, help="Loss function")
     parser.add_argument("-sp", "--spectrum", type=str, default="reducedSpectrum", help="Spectrum of MUSIC dataset")
-    parser.add_argument("-ps", "--patch_size", type=int, default=32, help="2D patch size, should be multiple of 128")
+    parser.add_argument("-ps", "--patch_size", type=int, default=64, help="2D patch size, should be multiple of 128")
     parser.add_argument("-dim_red", "--dim_red", choices=['none', 'pca'], default="none", help="Use dimensionality reduction")
     parser.add_argument("-no_dim_red", "--no_dim_red", type=int, default=5, help="Target no. dimensions for dim reduction")
     parser.add_argument("-sample_strategy", "--sample_strategy", choices=['grid', 'label'], default="label", help="Type of sampler to use for patches")

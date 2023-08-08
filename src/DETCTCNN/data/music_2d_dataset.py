@@ -12,6 +12,8 @@ import torch
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 import torchio as tio
+from torchvision import transforms as T
+from torchvision.transforms import functional as F
 
 from data_utils import dimensionality_reduction
 
@@ -57,14 +59,10 @@ class MUSIC2DDataset(Dataset):
 
     def _get_image(self,index):
         image = self.images[index]
-        if self.transform is not None:
-            image = self.transform(image)
         return image
 
     def _get_segmentation(self,index):
         segmentation = self.segmentations[index]
-        if self.transform is not None:
-            segmentation = self.transform(segmentation)
         return segmentation
 
     def _patchify(self,data):
@@ -90,6 +88,7 @@ class MUSIC2DDataset(Dataset):
         image = self._get_image(index=index)
         segmentation = self._get_segmentation(index=index) 
         classes = self._get_classes(segmentation)
+        image, segmentation = self.transform(image,segmentation)
         return {"image": image, "segmentation": segmentation, "classes":classes}
     
     def plot_item(self,index, rad_val):
@@ -236,3 +235,54 @@ class MusicTransform:
         img = np.array(img)
         img = img.transpose((1,2,0))
         return self.aug(image=img)["image"]
+
+class JointTransform2D:
+    """
+    Performs augmentation on image and mask when called. Due to the randomness of augmentation transforms,
+    it is not enough to simply apply the same Transform from torchvision on the image and mask separetely.
+    Doing this will result in messing up the ground truth mask. To circumvent this problem, this class can
+    be used, which will take care of the problems above.
+
+    Args:
+        crop: tuple describing the size of the random crop. If bool(crop) evaluates to False, no crop will
+            be taken.
+        p_flip: float, the probability of performing a random horizontal flip.
+        color_jitter_params: tuple describing the parameters of torchvision.transforms.ColorJitter.
+            If bool(color_jitter_params) evaluates to false, no color jitter transformation will be used.
+        p_random_affine: float, the probability of performing a random affine transform using
+            torchvision.transforms.RandomAffine.
+        long_mask: bool, if True, returns the mask as LongTensor in label-encoded format.
+    """
+    def __init__(self, crop=(256, 256), p_flip=0.5, color_jitter_params=(0.1, 0.1, 0.1, 0.1),
+                 p_random_affine=0, long_mask=False):
+        self.crop = crop
+        self.p_flip = p_flip
+        self.color_jitter_params = color_jitter_params
+        if color_jitter_params:
+            self.color_tf = T.ColorJitter(*color_jitter_params)
+        self.p_random_affine = p_random_affine
+        self.long_mask = long_mask
+
+    def __call__(self, image, mask):
+        # transforming to PIL image
+        # image, mask = F.to_pil_image(image), F.to_pil_image(mask)
+
+        # random crop
+        if self.crop:
+            i, j, h, w = T.RandomCrop.get_params(image, self.crop)
+            image, mask = F.crop(image, i, j, h, w), F.crop(mask, i, j, h, w)
+
+        if np.random.rand() < self.p_flip:
+            image, mask = F.hflip(image), F.hflip(mask)
+
+        # color transforms || ONLY ON IMAGE
+        if self.color_jitter_params:
+            image = self.color_tf(image)
+
+        # random affine transform
+        if np.random.rand() < self.p_random_affine:
+            affine_params = T.RandomAffine(180).get_params((-90, 90), (1, 1), (2, 2), (-45, 45), self.crop)
+            image, mask = F.affine(image, *affine_params), F.affine(mask, *affine_params)
+
+        # transforming to tensor
+        return image, mask
