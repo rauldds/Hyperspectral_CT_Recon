@@ -13,8 +13,12 @@ MUSIC2DDataset = music_2d_dataset.MUSIC2DDataset
 from torch.utils.data import DataLoader
 import torch.backends
 import torchio as tio
+import numpy as np
+
 
 LABELS_SIZE = len(MUSIC_2D_LABELS)
+palette = np.array(MUSIC_2D_PALETTE)
+
 device = torch.device("cuda" if torch.cuda.is_available() else 
                       ("mps" if torch.backends.mps.is_available() else "cpu"))
 
@@ -42,7 +46,7 @@ def main(hparams):
     path3d = hparams.data_root + "/MUSIC3D_HDF5"
     train_dataset = MUSIC2DDataset(path2d=path2d, path3d=path3d,
                                    partition="train", spectrum="reducedSpectrum",
-                                   transform=transform, full_dataset=False)
+                                   transform=transform, full_dataset=hparams.full_dataset)
     if hparams.normalize_data:
         mean, std = calculate_data_statistics(train_dataset.images)
         train_dataset.images = list(map(lambda x: standardize(x,mean,std) , train_dataset.images))
@@ -56,6 +60,11 @@ def main(hparams):
     # START CONFIGS to load train dataset for patch learning
     # Define how many patches to do per volume based on the patch size
     patches_for_full_volume = int(128/hparams.patch_size)*2
+
+    #OVERRIDE PRINT_EVERY AND VALIDATE EVERY
+    hparams.print_every = int(patches_for_full_volume*len(train_dataset)/hparams.batch_size)
+    hparams.validate_every = hparams.print_every
+
     # Number of used energy levels
     energy_levels = 10
     if hparams.spectrum != "reducedSpectrum":
@@ -94,8 +103,8 @@ def main(hparams):
     train_loader = DataLoader(train_patches_queue, batch_size=hparams.batch_size, shuffle=True)
 
     val_dataset = MUSIC2DDataset(path2d=path2d, path3d=path3d,
-                                 partition="valid", spectrum="reducedSpectrum", 
-                                 transform=transform, full_dataset=False)
+                                 partition="valid", spectrum=hparams.spectrum,
+                                 transform=transform, full_dataset=hparams.full_dataset)
     if hparams.normalize_data:
         val_dataset.images = list(map(lambda x: standardize(x,mean,std) , val_dataset.images))
         val_dataset.images = list(map(lambda x: normalize(x,min,max) , val_dataset.images))
@@ -111,13 +120,13 @@ def main(hparams):
         val_list.append(subject)
     ValSubjectDataset = tio.data.SubjectsDataset(val_list)
     val_sampler = tio.GridSampler(patch_size=(energy_levels,
-                                                hparams.patch_size,
-                                                hparams.patch_size),
+                                                128,
+                                                128),
                                     subject=subject)
     val_patches_queue = tio.Queue(
                                     ValSubjectDataset,
                                     max_length=150,
-                                    samples_per_volume=patches_for_full_volume,
+                                    samples_per_volume=1,
                                     sampler=val_sampler,
                                     num_workers=1,
     )
@@ -219,6 +228,10 @@ def main(hparams):
                     with torch.no_grad():
                         val_pred = model(val_X)
                         loss = loss_criterion(val_pred, val_y)
+                        pred = val_pred.argmax(dim=1).squeeze(0).detach().cpu().numpy()
+                        colored_image = palette[pred]
+                        colored_image = torch.from_numpy(colored_image.astype(np.uint8))
+
 
                     val_loss +=loss.item()
                     val_acc += calculate_accuracy(val_pred, val_y)
@@ -231,6 +244,7 @@ def main(hparams):
                 tb.add_scalar("Val_Loss", val_loss, epoch)
                 tb.add_scalar("Val_Accuracy", val_acc, epoch)
                 tb.add_scalar("Val_IOU", val_iou, epoch)
+                tb.add_image("Val Image", torch.transpose(colored_image,0,2),epoch)
                 print(f'[INFO-Validation][epoch: {epoch:03d}/iteration: {i :03d}] validation_loss: {val_loss:.6f}, validation_acc: {val_acc:.2f}%, validation_IOU: {val_iou:.2f}%')
 
 
@@ -238,8 +252,8 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("-dr", "--data_root", type=str, default="/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon", help="Data root directory")
     parser.add_argument("-ve", "--validate_every", type=int, default=10, help="Validate after each # of iterations")
-    parser.add_argument("-pe", "--print_every", type=int, default=10, help="print info after each # of epochs")
-    parser.add_argument("-e", "--epochs", type=int, default=3000, help="Number of maximum training epochs")
+    parser.add_argument("-pe", "--print_every", type=int, default=10, help="print info after each # of iterations")
+    parser.add_argument("-e", "--epochs", type=int, default=200, help="Number of maximum training epochs")
     parser.add_argument("-bs", "--batch_size", type=int, default=4, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
     parser.add_argument("-lr", "--learning_rate", type=float, default=0.001, help="Learning rate")
@@ -247,5 +261,6 @@ if __name__ == "__main__":
     parser.add_argument("-n", "--normalize_data", type=bool, default=True, help="Loss function")
     parser.add_argument("-sp", "--spectrum", type=str, default="reducedSpectrum", help="Spectrum of MUSIC dataset")
     parser.add_argument("-ps", "--patch_size", type=int, default=64, help="2D patch size, should be multiple of 128")
+    parser.add_argument("-fd", "--full_dataset", type=bool, default=False, help="Use 2D and 3D datasets or not")
     args = parser.parse_args()
     main(args)
