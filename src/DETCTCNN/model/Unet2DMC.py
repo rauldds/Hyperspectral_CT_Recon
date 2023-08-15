@@ -24,14 +24,14 @@ class EncoderBlock(nn.Module):
 
 class DecoderBlock(nn.Module):
 
-	def __init__(self, channels=(256,128,64), use_connections=True):
+	def __init__(self, channels=(256,128,64), use_connections=True, dropout_prob=0.5):
 		super().__init__()
 		self.channels = channels
 		# initialize the number of channels, upsampler blocks, and
 		# decoder blocks
 		self.channels = channels
 		self.use_connections = use_connections
-		self.dropout = [nn.Dropout() for i in range(len(channels) - 1)]
+		self.dropout = [nn.Dropout(p=dropout_prob) for i in range(len(channels) - 1)]
 		if use_connections:
 			self.upconvs = nn.ModuleList(
 				[nn.ConvTranspose2d(channels[i], channels[i], 2, 2)
@@ -69,7 +69,7 @@ class DecoderBlock(nn.Module):
 
 # Basic out channel is a multiplier
 class Unet2DMC(nn.Module):
-	def __init__(self,input_channels=2,with_1conv=True, use_bn=False, depth=3, basic_out_channel=64, n_labels=7, skip_connections=True):
+	def __init__(self,input_channels=2,with_1conv=True, use_bn=False, depth=3, basic_out_channel=64, n_labels=7, skip_connections=True, dropout=0.5):
 		super(Unet2DMC, self).__init__()
 		self.with_1conv=with_1conv
 		self.skip_connections=skip_connections
@@ -82,13 +82,14 @@ class Unet2DMC(nn.Module):
     		ConvBlock(input_channels, basic_out_channel//2, kernel=(1,1), use_bn=use_bn),
     		ConvBlock(basic_out_channel//2, basic_out_channel, kernel=(1,1), use_bn=use_bn)
 		)
+		self.dropout_prob = dropout
 		encoder_channels = basic_out_channel*np.array([1] + [2**(i) for i in range(depth)])
 		self.encoder = EncoderBlock(channels=encoder_channels) 
 		decoder_channels = basic_out_channel*np.array([2**(depth-1)] + [2**(i) for i in reversed(range(depth))])
 		# Last layer: init_conv + output of decoder size
 		if self.skip_connections is True:
 			decoder_channels = np.append(decoder_channels,40+basic_out_channel) 
-		self.decoder = DecoderBlock(channels=decoder_channels, use_connections=self.skip_connections)
+		self.decoder = DecoderBlock(channels=decoder_channels, use_connections=self.skip_connections, dropout_prob=self.dropout_prob)
 		self.final = ConvBlock(basic_out_channel, n_labels, kernel=(1, 1))
 
 	def forward(self,x):
