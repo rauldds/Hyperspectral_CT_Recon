@@ -14,8 +14,8 @@ from unet.music_2d_dataset import MUSIC2DDataset
 from torchmetrics import Dice
 
 parser = ArgumentParser()
-parser.add_argument('--dataset', type=str, default="./MUSIC2D_HDF5")
-parser.add_argument('--checkpoint_path', type=str, default="./checkpoint")
+parser.add_argument('--dataset', type=str, default="./../../MUSIC2D_HDF5")
+parser.add_argument('--checkpoint_path', type=str, default="./../../checkpoint")
 parser.add_argument('--device', default='mps', type=str)
 parser.add_argument('--out_channels', default=16, type=int)
 parser.add_argument('--depth', default=4, type=int)
