@@ -26,8 +26,22 @@ Nevertheless here are some important deadlines:
     2. Do direct reconstruction and segmentation using Learning-based approach.
 
 
-# DATASET
+## DATASET
 
 Download the [MUSIC 2D and Music 3D Spectral datasets](http://easi-cil.compute.dtu.dk/index.php/datasets/music/) and set them in the root of the project.
 
+## Docker Container
+Install [docker](https://docs.docker.com/engine/install/ubuntu/) (if you don't already have it).
+
+After that, go to the root folder of the repo and simply run:
+ ```
+docker build -t mlmi -f Dockerfile ..
+ ```
+Once the docker file has been compiled you can simply run by executing:
+ ```
+ sudo docker run --rm -v <DATASET FOLDER PATH>:/workspace/dataset -v <REPO FOLDER PATH>:/workspace --gpus all -it  mlmi
+  ```
+  From there, you can execute as you would normally do. 
+  
+  To exit the container simply run `exit`.
 
