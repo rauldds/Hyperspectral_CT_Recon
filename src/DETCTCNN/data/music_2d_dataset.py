@@ -13,7 +13,7 @@ import albumentations as A
 from albumentations.pytorch import ToTensorV2
 import torchio as tio
 
-from data_utils import dimensionality_reduction
+from .data_utils import dimensionality_reduction
 
 class Dataset(ABC):
     def __init__(self, path2d, path3d, transform, partition, spectrum, full_dataset):
