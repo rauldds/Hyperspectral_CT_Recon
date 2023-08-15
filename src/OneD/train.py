@@ -2,11 +2,11 @@ import torch
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 import torch.optim.lr_scheduler as lr_scheduler
-from src.OneD_CNN.model import OneDAutoEncoder
+from src.OneD.model import OneDAutoEncoder
 from src.DETCTCNN.data import MUSIC2DDataset
 from src.DETCTCNN.data import MUSIC_2D_LABELS
 from src.DETCTCNN.data import MUSIC_2D_PALETTE
-from src.OneD_CNN.config import hparams
+from src.OneD.config import hparams
 from utils import image_from_segmentation
 
 LABELS_SIZE = len(MUSIC_2D_LABELS)
