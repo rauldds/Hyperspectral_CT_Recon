@@ -70,5 +70,5 @@ runs/
 img/
 checkpoints/
 
-src/OneD_CNN/best_model.pth
-src/OneD_CNN/pg.py
+src/OneD/best_model.pth
+src/OneD/pg.py
