@@ -1,6 +1,7 @@
 import torch
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
+import torch.optim.lr_scheduler as lr_scheduler
 from src.OneD_CNN.model import OneDAutoEncoder
 from src.DETCTCNN.data import MUSIC2DDataset
 from src.DETCTCNN.data import MUSIC_2D_LABELS
@@ -23,6 +24,7 @@ model.to(device)
 
 # Define optimizer and loss criterion
 optimizer = torch.optim.Adam(model.parameters(), lr=hparams['lr'])
+scheduler  = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min')
 loss_criterion = torch.nn.CrossEntropyLoss().to(device)
 
 epochs = hparams['epochs']
@@ -84,6 +86,8 @@ for epoch in range(epochs):
             running_val_loss += val_loss.item()
 
     average_val_loss = running_val_loss / len(val_loader)
+    # Update the learning rate based on validation loss
+    scheduler.step(average_val_loss)
     tb.add_scalar("Validation Loss", average_val_loss, epoch)
     print(f"Epoch [{epoch + 1}/{epochs}], Validation Loss: {average_val_loss:.4f}")
 
