@@ -12,7 +12,9 @@ from skimage import io
 
 from time import time
 
-from unet.music_2d_labels import MUSIC_2D_PALETTE
+from music_2d_labels import MUSIC_2D_PALETTE
+
+
 
 from .utils import chk_mkdir, Logger, MetricList, patchify_image
 from .dataset import ImageToImage2D, Image2D
@@ -96,9 +98,9 @@ class Model:
             X_batch = Variable(data["image"].to(device=self.device))
             y_batch = None
             if not use_one_hot:
-                y_batch = Variable(data["mask"].argmax(1).to(device=self.device))
+                y_batch = Variable(data["segmentation"].argmax(1).to(device=self.device))
             else:
-                y_batch = Variable(data["mask"].to(device=self.device))
+                y_batch = Variable(data["segmentation"].to(device=self.device))
                 
 
             # training
@@ -141,9 +143,9 @@ class Model:
             X_batch = Variable(data["image"].to(device=self.device))
             y_batch = None
             if not use_one_hot:
-                y_batch = Variable(data["mask"].argmax(1).to(device=self.device))
+                y_batch = Variable(data["segmentation"].argmax(1).to(device=self.device))
             else:
-                y_batch = Variable(data["mask"].to(device=self.device))
+                y_batch = Variable(data["segmentation"].to(device=self.device))
 
             y_out = self.net(X_batch)
             training_loss = self.loss(y_out, y_batch)
@@ -258,17 +260,18 @@ class Model:
             image_filename = '%s.png' % str(batch_idx + 1).zfill(3)
 
             X_batch = Variable(data["image"].to(device=self.device))
-            orig_shape = X_batch.size()
-            X_patches = patchify_image(X_batch, patch_size)
-            print(patchify_image.shape)
-            pred = []
-            for i in range(X_patches.shape[0]):
-                y_out = self.net(X_patches[i].unsqueeze(0))
-                pred.append(y_out)
+            # orig_shape = X_batch.size()
+            # X_patches = patchify_image(X_batch, patch_size)
+            # print(patchify_image.shape)
+            # pred = []
+            # for i in range(X_patches.shape[0]):
+            #     y_out = self.net(X_patches[i].unsqueeze(0))
+            #     pred.append(y_out)
             
-            pred = torch.concat(pred)
-            pred = pred.reshape(orig_shape[0], 16, orig_shape[2], orig_shape[3])
-            checkpoint_image(pred, 16, MUSIC_2D_PALETTE, device=None, path=os.path.join(export_path, image_filename))
+            # pred = torch.concat(pred)
+            # pred = pred.reshape(orig_shape[0], 16, orig_shape[2], orig_shape[3])
+            y_out = self.net(X_batch)
+            checkpoint_image(y_out, 16, MUSIC_2D_PALETTE, device=None, path=os.path.join(export_path, image_filename))
             # io.imsave(os.path.join(export_path, image_filename), y_out[0, 1, :, :])
 
 def checkpoint_image(prediction,no_classes, palette, device, path):
