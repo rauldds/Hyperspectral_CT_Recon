@@ -15,7 +15,7 @@ import torchio as tio
 from torchvision import transforms as T
 from torchvision.transforms import functional as F
 
-from data_utils import dimensionality_reduction
+from .data_utils import dimensionality_reduction
 
 class Dataset(ABC):
     def __init__(self, path2d, path3d, transform, partition, spectrum, full_dataset):

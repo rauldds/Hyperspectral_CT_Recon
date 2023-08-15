@@ -69,3 +69,6 @@ src/DETCTCNN/model/runs/
 runs/
 img/
 checkpoints/
+
+src/OneD/best_model.pth
+src/OneD/pg.py

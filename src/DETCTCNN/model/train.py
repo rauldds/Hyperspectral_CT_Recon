@@ -14,8 +14,12 @@ MUSIC2DDataset = music_2d_dataset.MUSIC2DDataset
 from torch.utils.data import DataLoader
 import torch.backends
 import torchio as tio
+import numpy as np
+
 
 LABELS_SIZE = len(MUSIC_2D_LABELS)
+palette = np.array(MUSIC_2D_PALETTE)
+
 device = torch.device("cuda" if torch.cuda.is_available() else 
                       ("mps" if torch.backends.mps.is_available() else "cpu"))
 
@@ -40,6 +44,7 @@ def main(hparams):
     # transform = None
     path2d = hparams.data_root + "/MUSIC2D_HDF5"
     path3d = hparams.data_root + "/MUSIC3D_HDF5"
+
     train_dataset = MUSIC2DDataset(
         path2d=path2d, path3d=path3d,
         partition="train", 
@@ -49,6 +54,7 @@ def main(hparams):
         dim_red = hparams.dim_red,
         no_dim_red = hparams.no_dim_red
     )
+    
     if hparams.normalize_data:
         mean, std = calculate_data_statistics(train_dataset.images)
         train_dataset.images = list(map(lambda x: standardize(x,mean,std) , train_dataset.images))
@@ -62,6 +68,11 @@ def main(hparams):
     # START CONFIGS to load train dataset for patch learning
     # Define how many patches to do per volume based on the patch size
     patches_for_full_volume = int(128/hparams.patch_size)*2
+
+    #OVERRIDE PRINT_EVERY AND VALIDATE EVERY
+    hparams.print_every = int(patches_for_full_volume*len(train_dataset)/hparams.batch_size)
+    hparams.validate_every = hparams.print_every
+
     # Number of used energy levels
     energy_levels = 10
     if hparams.spectrum != "reducedSpectrum":
@@ -245,6 +256,10 @@ def main(hparams):
                     with torch.no_grad():
                         val_pred = model(val_X)
                         loss = loss_criterion(val_pred, val_y)
+                        pred = val_pred.argmax(dim=1).squeeze(0).detach().cpu().numpy()
+                        colored_image = palette[pred]
+                        colored_image = torch.from_numpy(colored_image.astype(np.uint8))
+
 
                     val_loss +=loss.item()
                     val_acc += calculate_accuracy(val_pred, val_y)
@@ -259,6 +274,7 @@ def main(hparams):
                 tb.add_scalar("Val_Loss", val_loss, epoch)
                 tb.add_scalar("Val_Accuracy", val_acc, epoch)
                 tb.add_scalar("Val_IOU", val_iou, epoch)
+                tb.add_image("Val Image", torch.transpose(colored_image,0,2),epoch)
                 print(f'[INFO-Validation][epoch: {epoch:03d}/iteration: {i :03d}] validation_loss: {val_loss:.6f}, validation_acc: {val_acc:.2f}%, validation_IOU: {val_iou:.2f}%')
 
 
@@ -266,6 +282,7 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("-dr", "--data_root", type=str, default="/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon", help="Data root directory")
     parser.add_argument("-ve", "--validate_every", type=int, default=10, help="Validate after each # of iterations")
+
     parser.add_argument("-pe", "--print_every", type=int, default=10, help="print info after each # of epochs")
     parser.add_argument("-e", "--epochs", type=int, default=300, help="Number of maximum training epochs")
     parser.add_argument("-bs", "--batch_size", type=int, default=4, help="Batch size")
