@@ -8,7 +8,9 @@ __pycache__/
 
 # C extensions
 *.so
-
+src/compression/experiments
+src/data/experiments
+experiments
 # Distribution / packaging
 bin/
 build/
@@ -67,3 +69,6 @@ src/DETCTCNN/model/runs/
 runs/
 img/
 checkpoints/
+
+src/OneD/best_model.pth
+src/OneD/pg.py

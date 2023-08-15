@@ -1,5 +1,6 @@
 from argparse import ArgumentParser
 from sys import path
+from typing import Dict
 from src.DETCTCNN.model.losses import DiceLoss, CEDiceLoss, FocalLoss
 from src.DETCTCNN.model.model import get_model
 import torch
@@ -44,9 +45,17 @@ def main(hparams):
     # transform = None
     path2d = hparams.data_root + "/MUSIC2D_HDF5"
     path3d = hparams.data_root + "/MUSIC3D_HDF5"
-    train_dataset = MUSIC2DDataset(path2d=path2d, path3d=path3d,
-                                   partition="train", spectrum="reducedSpectrum",
-                                   transform=transform, full_dataset=hparams.full_dataset)
+
+    train_dataset = MUSIC2DDataset(
+        path2d=path2d, path3d=path3d,
+        partition="train", 
+        spectrum=hparams.spectrum,
+        transform=transform, 
+        full_dataset=False, 
+        dim_red = hparams.dim_red,
+        no_dim_red = hparams.no_dim_red
+    )
+    
     if hparams.normalize_data:
         mean, std = calculate_data_statistics(train_dataset.images)
         train_dataset.images = list(map(lambda x: standardize(x,mean,std) , train_dataset.images))
@@ -69,6 +78,8 @@ def main(hparams):
     energy_levels = 10
     if hparams.spectrum != "reducedSpectrum":
         energy_levels = 128
+    if hparams.dim_red != "none":
+        energy_levels = hparams.no_dim_red
     
     # Convert elements from dataset class to torch io subjects and store them in a list
     for data in (train_dataset):
@@ -90,6 +101,15 @@ def main(hparams):
                                                 hparams.patch_size,
                                                 hparams.patch_size),
                                     subject=subject)
+
+    if hparams.sample_strategy == "label":
+        label_probabilities : Dict[int, float] = {i: (0 if i == 0 else 1) for i in range(len(MUSIC_2D_LABELS))}
+        train_sampler = tio.data.LabelSampler(
+            patch_size=(energy_levels,
+                        hparams.patch_size,
+                        hparams.patch_size),
+            label_probabilities=label_probabilities,
+        )
     # Queue that controls the loaded patches, provides them for each batch iteration
     train_patches_queue = tio.Queue(
                                     TrainSubjectDataset,
@@ -102,9 +122,16 @@ def main(hparams):
     
     train_loader = DataLoader(train_patches_queue, batch_size=hparams.batch_size, shuffle=True)
 
-    val_dataset = MUSIC2DDataset(path2d=path2d, path3d=path3d,
-                                 partition="valid", spectrum=hparams.spectrum,
-                                 transform=transform, full_dataset=hparams.full_dataset)
+    val_dataset = MUSIC2DDataset(
+        path2d=path2d, path3d=path3d,
+        partition="valid",
+        spectrum=hparams.spectrum, 
+        transform=transform, 
+        full_dataset=False,
+        dim_red = hparams.dim_red,
+        no_dim_red = hparams.no_dim_red
+    )
+    
     if hparams.normalize_data:
         val_dataset.images = list(map(lambda x: standardize(x,mean,std) , val_dataset.images))
         val_dataset.images = list(map(lambda x: normalize(x,min,max) , val_dataset.images))
@@ -140,7 +167,7 @@ def main(hparams):
     # print(dice_weights)
 
 
-    model = get_model(input_channels=10, n_labels=hparams.n_labels, use_bn=True, basic_out_channel=64, depth=3)
+    model = get_model(input_channels=energy_levels, n_labels=hparams.n_labels, use_bn=True, basic_out_channel=64, depth=3)
     model.to(device=device)
     
     optimizer = torch.optim.Adam(model.parameters(), betas=([0.9, 0.999]), lr = hparams.learning_rate)
@@ -252,15 +279,18 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("-dr", "--data_root", type=str, default="/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon", help="Data root directory")
     parser.add_argument("-ve", "--validate_every", type=int, default=10, help="Validate after each # of iterations")
-    parser.add_argument("-pe", "--print_every", type=int, default=10, help="print info after each # of iterations")
-    parser.add_argument("-e", "--epochs", type=int, default=200, help="Number of maximum training epochs")
-    parser.add_argument("-bs", "--batch_size", type=int, default=4, help="Batch size")
+
+    parser.add_argument("-pe", "--print_every", type=int, default=10, help="print info after each # of epochs")
+    parser.add_argument("-e", "--epochs", type=int, default=1000, help="Number of maximum training epochs")
+    parser.add_argument("-bs", "--batch_size", type=int, default=8, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
     parser.add_argument("-lr", "--learning_rate", type=float, default=0.001, help="Learning rate")
-    parser.add_argument("-loss", "--loss", type=str, default="focal", help="Loss function")
+    parser.add_argument("-loss", "--loss", type=str, default="ce", help="Loss function")
     parser.add_argument("-n", "--normalize_data", type=bool, default=True, help="Loss function")
     parser.add_argument("-sp", "--spectrum", type=str, default="reducedSpectrum", help="Spectrum of MUSIC dataset")
-    parser.add_argument("-ps", "--patch_size", type=int, default=64, help="2D patch size, should be multiple of 128")
-    parser.add_argument("-fd", "--full_dataset", type=bool, default=False, help="Use 2D and 3D datasets or not")
+    parser.add_argument("-ps", "--patch_size", type=int, default=32, help="2D patch size, should be multiple of 128")
+    parser.add_argument("-dim_red", "--dim_red", choices=['none', 'pca'], default="none", help="Use dimensionality reduction")
+    parser.add_argument("-no_dim_red", "--no_dim_red", type=int, default=5, help="Target no. dimensions for dim reduction")
+    parser.add_argument("-sample_strategy", "--sample_strategy", choices=['grid', 'label'], default="label", help="Type of sampler to use for patches")
     args = parser.parse_args()
     main(args)
