@@ -4,25 +4,26 @@ import torch.optim as optim
 
 from functools import partial
 from argparse import ArgumentParser
+from src.DETCTCNN.model.train import MUSIC2DDataset
 
 from unet.unet import UNet2D
 from unet.model import Model
 from unet.utils import MetricList
-from unet.metrics import FocalLoss, jaccard_index, f1_score, LogNLLLoss, DiceLoss, miou, CEDiceLoss
+from unet.metrics import f1_score, LogNLLLoss, miou
 from unet.dataset import JointTransform2D, ImageToImage2D, Image2D
-from unet.music_2d_dataset import MUSIC2DDataset
 from torchmetrics import Dice
 
 parser = ArgumentParser()
 parser.add_argument('--dataset', type=str, default="./../../MUSIC2D_HDF5")
-parser.add_argument('--checkpoint_path', type=str, default="./../../checkpoint")
+parser.add_argument('--dataset3D', type=str, default="./../../MUSIC3D_HDF5")
+parser.add_argument('--checkpoint_path', type=str, default="./checkpoint")
 parser.add_argument('--device', default='mps', type=str)
 parser.add_argument('--out_channels', default=16, type=int)
-parser.add_argument('--depth', default=4, type=int)
-parser.add_argument('--width', default=32, type=int)
+parser.add_argument('--depth', default=3, type=int)
+parser.add_argument('--width', default=16, type=int)
 parser.add_argument('--epochs', default=500, type=int)
 parser.add_argument('--batch_size', default=4, type=int)
-parser.add_argument('--save_freq', default=50, type=int)
+parser.add_argument('--save_freq', default=2, type=int)
 parser.add_argument('--save_model', default=1, type=int)
 parser.add_argument('--model_name', type=str, default='model')
 parser.add_argument('--learning_rate', type=float, default=1e-5)
@@ -42,31 +43,31 @@ tf_train = JointTransform2D(crop=crop, p_flip=0.5, color_jitter_params=None, lon
 tf_val = JointTransform2D(crop=crop, p_flip=0, color_jitter_params=None, long_mask=True)
 
 train_dataset = MUSIC2DDataset(
-    path2d=args.dataset, path3d=None,
+    path2d=args.dataset, path3d=args.dataset3D,
     partition="train",
     spectrum=args.spectrum, 
     transform=tf_train, 
-    full_dataset=False,
+    full_dataset=True,
     dim_red = args.dim_red, 
     no_dim_red = args.no_dim_red
 )
 
 val_dataset = MUSIC2DDataset(
-    path2d=args.dataset, path3d=None,
+    path2d=args.dataset, path3d=args.dataset3D,
     partition="valid",
     spectrum=args.spectrum, 
     transform=tf_val, 
-    full_dataset=False,
+    full_dataset=True,
     dim_red = args.dim_red, 
     no_dim_red = args.no_dim_red
 )
 
 predict_dataset = MUSIC2DDataset(
-    path2d=args.dataset, path3d=None,
+    path2d=args.dataset, path3d=args.dataset3D,
     partition="valid",
     spectrum=args.spectrum, 
-    transform=None, 
-    full_dataset=False,
+    transform=None,
+    full_dataset=True,
     dim_red = args.dim_red, 
     no_dim_red = args.no_dim_red
 )
