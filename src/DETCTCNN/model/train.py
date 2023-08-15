@@ -35,7 +35,7 @@ def calculate_accuracy(pred_tensor, target_tensor):
 def main(hparams):
     
     # Initialize Transformations
-    transform = music_2d_dataset.JointTransform2D(crop=None, p_flip=0.5, color_jitter_params=None, long_mask=True)
+    transform = music_2d_dataset.JointTransform2D(crop=(hparams.patch_size, hparams.patch_size), p_flip=0.5, color_jitter_params=None, long_mask=True)
     
     # transform = None
     path2d = hparams.data_root + "/MUSIC2D_HDF5"
@@ -157,7 +157,7 @@ def main(hparams):
     # print(dice_weights)
 
 
-    model = get_model(input_channels=energy_levels, n_labels=hparams.n_labels, use_bn=True, basic_out_channel=32, depth=2, dropout=0.2)
+    model = get_model(input_channels=energy_levels, n_labels=hparams.n_labels, use_bn=True, basic_out_channel=16, depth=2, dropout=0.5)
     model.to(device=device)
     
     optimizer = torch.optim.Adam(model.parameters(), betas=([0.9, 0.999]), lr = hparams.learning_rate)
@@ -175,7 +175,7 @@ def main(hparams):
         loss_criterion = DiceLossV2().to(device)
     elif hparams.loss == "focal":
         # Use Weighted Dice Loss
-        loss_criterion = FocalLoss(gamma=2, alpha=dice_weights).to(device)
+        loss_criterion = FocalLoss(gamma=4, alpha=dice_weights).to(device)
     else: # Use both losses
         loss_criterion = CEDiceLoss(weight=dice_weights, ce_weight=0.5).to(device)
 
@@ -194,7 +194,7 @@ def main(hparams):
 
             # Forward Pass
             y_hat = model(X)
-            loss = loss_criterion(y_hat, y) * 1000
+            loss = loss_criterion(y_hat, y)
 
             # backward pass
             loss.backward()
@@ -254,7 +254,7 @@ def main(hparams):
                 val_acc /= len(val_loader)
                 val_iou /= len(val_loader)
 
-                val_loss  = val_loss * 1000
+                val_loss  = val_loss
 
                 tb.add_scalar("Val_Loss", val_loss, epoch)
                 tb.add_scalar("Val_Accuracy", val_acc, epoch)
@@ -270,11 +270,11 @@ if __name__ == "__main__":
     parser.add_argument("-e", "--epochs", type=int, default=300, help="Number of maximum training epochs")
     parser.add_argument("-bs", "--batch_size", type=int, default=4, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
-    parser.add_argument("-lr", "--learning_rate", type=float, default=0.0005, help="Learning rate")
+    parser.add_argument("-lr", "--learning_rate", type=float, default=0.00005, help="Learning rate")
     parser.add_argument("-loss", "--loss", type=str, default="focal", help="Loss function")
     parser.add_argument("-n", "--normalize_data", type=bool, default=True, help="Loss function")
     parser.add_argument("-sp", "--spectrum", type=str, default="reducedSpectrum", help="Spectrum of MUSIC dataset")
-    parser.add_argument("-ps", "--patch_size", type=int, default=64, help="2D patch size, should be multiple of 128")
+    parser.add_argument("-ps", "--patch_size", type=int, default=80, help="2D patch size, should be multiple of 128")
     parser.add_argument("-dim_red", "--dim_red", choices=['none', 'pca'], default="none", help="Use dimensionality reduction")
     parser.add_argument("-no_dim_red", "--no_dim_red", type=int, default=5, help="Target no. dimensions for dim reduction")
     parser.add_argument("-sample_strategy", "--sample_strategy", choices=['grid', 'label'], default="label", help="Type of sampler to use for patches")
