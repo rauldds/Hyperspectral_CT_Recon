@@ -3,7 +3,7 @@ from sklearn import preprocessing, svm
 from sklearn.discriminant_analysis import StandardScaler
 import torch
 from music_2d_dataset import MUSIC2DDataset
-from sklearn.linear_model import , LogisticRegression
+from sklearn.linear_model import LogisticRegression
 import os
 from sklearn.model_selection import train_test_split
 from matplotlib import pyplot as plt
