@@ -7,6 +7,7 @@ import h5py
 from matplotlib import pyplot as plt
 import numpy as np
 import argparse
+from data_utils import dimensionality_reduction
 from  src.DETCTCNN.data.music_2d_labels import MUSIC_2D_LABELS
 import torch
 import albumentations as A
@@ -15,7 +16,6 @@ import torchio as tio
 from torchvision import transforms as T
 from torchvision.transforms import functional as F
 
-from .data_utils import dimensionality_reduction
 
 class Dataset(ABC):
     def __init__(self, path2d, path3d, transform, partition, spectrum, full_dataset):
