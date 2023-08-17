@@ -5,6 +5,7 @@ import seaborn as sns
 from PIL import Image
 from numpy import inf
 import torch
+from sklearn.utils.class_weight import compute_class_weight
 
 def colorize_mask(mask, palette):
     zero_pad = 256 * 3 - len(palette)
@@ -61,6 +62,22 @@ def class_weights(dataset, n_classes):
       w_s[w_s == inf] = 100
       w_s = torch.from_numpy(w_s)
       return w_s/sum(w_s)
+
+def flatten_data(dataset):
+    flattened_dataset = np.asarray([0])
+    for sample in dataset:
+        gt = sample["segmentation"].argmax(0).cpu().detach().numpy()
+        flattened_dataset = np.concatenate([flattened_dataset.reshape(1,-1),gt.flatten().reshape(1,-1)], 1)
+        #flattened_dataset.stack(gt.flatten())
+    print((flattened_dataset).shape)
+    return np.asarray(flattened_dataset).flatten()
+
+def class_weights_sklearn(dataset, n_classes):
+    print(n_classes)
+    flat_dataset = flatten_data(dataset)
+    class_weights = compute_class_weight('balanced', classes=range(n_classes), y=flat_dataset)
+    class_weights = torch.tensor(class_weights, dtype=torch.float)
+    return class_weights
 
 def calculate_data_statistics(dataset):
     stacked_data = torch.stack(dataset,dim=0)
