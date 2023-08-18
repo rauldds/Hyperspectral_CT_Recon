@@ -16,6 +16,7 @@ import torchio as tio
 from torchvision import transforms as T
 from torchvision.transforms import functional as F
 import json
+import random
 
 from .data_utils import dimensionality_reduction
 
@@ -243,12 +244,28 @@ class JointTransform2D:
 
         # random crop
         if self.crop:
-            contains_class = False
-            while contains_class == False:
+            indices = torch.nonzero((mask.argmax(0) != 0))
+            idx = random.randint(0,len(indices)-1)
+            center = indices[idx]
+            top = max(0,int(center[0]-self.crop[0]/2))
+            left = max(0,int(center[1]-self.crop[0]/2))
+            bottom = min(100,int(center[0]+self.crop[0]/2))
+            right = min(100,int(center[1]+self.crop[0]/2))
+            if top != 0:
+                if bottom == 100:
+                    top = bottom - self.crop[0]
+            if left != 0:
+                if right == 100:
+                    left = right - self.crop[0]
+            
+            #print(top, left, self.crop[0], self.crop[0])
+            image, mask = F.crop(image, top, left, self.crop[0], self.crop[0]), F.crop(mask, top, left, self.crop[0], self.crop[0])
+
+            '''while contains_class == False:
                 i, j, h, w = T.RandomCrop.get_params(image, self.crop)
                 image, mask = F.crop(image, i, j, h, w), F.crop(mask, i, j, h, w)
-                if (mask != 0).any():
-                    contains_class = True
+                if (mask.argmax(0) != 0).any():
+                    contains_class = True'''
             
 
         if np.random.rand() < self.p_flip:
