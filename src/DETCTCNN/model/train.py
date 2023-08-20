@@ -1,4 +1,5 @@
 from argparse import ArgumentParser
+import datetime
 from sys import path
 from typing import Dict
 from src.DETCTCNN.model.losses import DiceLoss, CEDiceLoss, FocalLoss
@@ -154,6 +155,7 @@ def main(hparams):
     
     # Define the train dataloader
     # train_loader = DataLoader(train_patches_queue, batch_size=hparams.batch_size, shuffle=True)
+    print("Loading Data (And applying dim reduction)...")
     train_loader = DataLoader(dataset=train_dataset, batch_size=hparams.batch_size,shuffle=True)
 
     # Define the validation dataset class
@@ -204,6 +206,7 @@ def main(hparams):
     ################################################################
 
     # Weights to define how representative is each class during loss estimation
+    print("Generating Weights...")
     dice_weights = class_weights(dataset=train_dataset, n_classes=len(MUSIC_2D_LABELS))
     #dice_weights = class_weights_sklearn(dataset=train_dataset, n_classes=len(MUSIC_2D_LABELS))
     # Check dice weights used to weight loss function
@@ -211,7 +214,8 @@ def main(hparams):
     # print(dice_weights)
 
     # Call U-Net model
-    model = get_model(input_channels=energy_levels, n_labels=hparams.n_labels, use_bn=True, basic_out_channel=16, depth=2, dropout=0.5)
+    print("Creating Model...")
+    model = get_model(input_channels=energy_levels, n_labels=hparams.n_labels, use_bn=True, basic_out_channel=16, depth=3, dropout=0.5)
     model.to(device=device)
     
     # Define ADAM optimizer
@@ -221,7 +225,7 @@ def main(hparams):
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min',patience=10)
 
     # Define Tensorboard writer
-    tb = SummaryWriter(f'runs/patch_size_{hparams.patch_size}')
+    tb = SummaryWriter(f'runs/patch_size_{hparams.patch_size}_{datetime.datetime.now().strftime("%b%d_%H-%M-%S")}')
 
     # Metric: IOU
     loss_criterion = None
@@ -237,6 +241,7 @@ def main(hparams):
     else: # Use both losses
         loss_criterion = CEDiceLoss(weight=dice_weights, ce_weight=0.5).to(device)
 
+    print("Training Started")
     for epoch in range(hparams.epochs):  # loop over the dataset multiple times
 
         # Initializing loss and accuracy
@@ -279,18 +284,18 @@ def main(hparams):
             tb.add_scalar("Train_acc", train_accuracy, epoch)
             tb.add_scalar("Train_IOU", train_iou, epoch)
             # Write representative image of epoch to tensorboard
-            img_pred = y_hat[0]
-            img_input = X[0].detach().cpu().numpy()
-            tb_input_train = draw_inputs(img_input)
-            train_target = y[0].detach().cpu().numpy()
-            pred = img_pred.argmax(dim=0).detach().cpu().numpy()
-            colored_image = palette[pred]
-            colored_target = palette[train_target]
-            colored_image = torch.from_numpy(colored_image.astype(np.uint8))
-            target_image = torch.from_numpy(colored_target.astype(np.uint8))
-            tb.add_image("Pred Train Image", torch.transpose(colored_image, 0, 2), epoch)
-            tb.add_image("Input Train Image", tb_input_train, epoch)
-            tb.add_image("Target Train Image", torch.transpose(target_image, 0, 2), epoch)
+            # img_pred = y_hat[0]
+            # img_input = X[0].detach().cpu().numpy()
+            # tb_input_train = draw_inputs(img_input)
+            # train_target = y[0].detach().cpu().numpy()
+            # pred = img_pred.argmax(dim=0).detach().cpu().numpy()
+            # colored_image = palette[pred]
+            # colored_target = palette[train_target]
+            # colored_image = torch.from_numpy(colored_image.astype(np.uint8))
+            # target_image = torch.from_numpy(colored_target.astype(np.uint8))
+            # tb.add_image("Pred Train Image", torch.transpose(colored_image, 0, 2), epoch)
+            # tb.add_image("Input Train Image", tb_input_train, epoch)
+            # tb.add_image("Target Train Image", torch.transpose(target_image, 0, 2), epoch)
             image_from_segmentation(y_hat, LABELS_SIZE, MUSIC_2D_PALETTE, device=device)
             print(f'[epoch: {epoch:03d}/iteration: {i :03d}] train_loss: {running_loss / hparams.print_every :.6f}, train_acc: {train_accuracy:.2f}%, train_IOU: {train_iou:.2f}%')
 
@@ -316,16 +321,16 @@ def main(hparams):
                     val_pred = model(val_X)
                     loss = loss_criterion(val_pred, val_y)
                     #Convert prediction to an image (numpy array)
-                    img_pred = val_pred[0]
-                    img_val_target = val_y[0].detach().cpu().numpy()
-                    pred = img_pred.argmax(dim=0).detach().cpu().numpy()
-                    colored_image = palette[pred]
-                    colored_val_target = palette[img_val_target]
-                    colored_image = torch.from_numpy(colored_image.astype(np.uint8))
-                    val_image = torch.from_numpy(colored_val_target.astype(np.uint8))
+                    # img_pred = val_pred[0]
+                    # img_val_target = val_y[0].detach().cpu().numpy()
+                    # pred = img_pred.argmax(dim=0).detach().cpu().numpy()
+                    # colored_image = palette[pred]
+                    # colored_val_target = palette[img_val_target]
+                    # colored_image = torch.from_numpy(colored_image.astype(np.uint8))
+                    # val_image = torch.from_numpy(colored_val_target.astype(np.uint8))
                 val_loss +=loss.item()
                 val_acc += calculate_accuracy(val_pred, val_y)
-                val_iou += mIoU_score(y_hat.cpu().argmax(1), y.cpu(), n_classes=LABELS_SIZE) * 100
+                val_iou += mIoU_score(val_pred.cpu().argmax(1), val_y.cpu(), n_classes=LABELS_SIZE) * 100
             val_loss /= len(val_loader)
             val_acc /= len(val_loader)
             val_iou /= len(val_loader)
@@ -336,8 +341,8 @@ def main(hparams):
             tb.add_scalar("Val_Loss", val_loss, epoch)
             tb.add_scalar("Val_Accuracy", val_acc, epoch)
             tb.add_scalar("Val_IOU", val_iou, epoch)
-            tb.add_image("Pred Val Image", torch.transpose(colored_image, 0, 2), epoch)
-            tb.add_image("Target Val Image", torch.transpose(val_image, 0, 2), epoch)
+            # tb.add_image("Pred Val Image", torch.transpose(colored_image, 0, 2), epoch)
+            # tb.add_ima("Target Val Image", torch.transpose(val_image, 0, 2), epoch)
             print(f'[INFO-Validation][epoch: {epoch:03d}/iteration: {i :03d}] validation_loss: {val_loss:.6f}, validation_acc: {val_acc:.2f}%, validation_IOU: {val_iou:.2f}%')
         if epoch == (hparams.epochs-1):
             tb.add_hparams(vars(hparams),
@@ -350,17 +355,17 @@ if __name__ == "__main__":
     parser.add_argument("-dr", "--data_root", type=str, default="/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon", help="Data root directory")
     parser.add_argument("-ve", "--validate_every", type=int, default=10, help="Validate after each # of iterations")
     parser.add_argument("-pe", "--print_every", type=int, default=10, help="print info after each # of epochs")
-    parser.add_argument("-e", "--epochs", type=int, default=300, help="Number of maximum training epochs")
+    parser.add_argument("-e", "--epochs", type=int, default=1000, help="Number of maximum training epochs")
     parser.add_argument("-bs", "--batch_size", type=int, default=4, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
     parser.add_argument("-lr", "--learning_rate", type=float, default=0.00005, help="Learning rate")
-    parser.add_argument("-loss", "--loss", type=str, default="focal", help="Loss function")
-    parser.add_argument("-n", "--normalize_data", type=bool, default=True, help="Loss function")
+    parser.add_argument("-loss", "--loss", type=str, default="ce", help="Loss function")
+    parser.add_argument("-n", "--normalize_data", type=bool, default=False, help="Loss function")
     parser.add_argument("-sp", "--spectrum", type=str, default="reducedSpectrum", help="Spectrum of MUSIC dataset")
-    parser.add_argument("-ps", "--patch_size", type=int, default=80, help="2D patch size, should be multiple of 128")
+    parser.add_argument("-ps", "--patch_size", type=int, default=40, help="2D patch size, should be multiple of 128")
     parser.add_argument("-dim_red", "--dim_red", choices=['none', 'pca'], default="none", help="Use dimensionality reduction")
     parser.add_argument("-no_dim_red", "--no_dim_red", type=int, default=5, help="Target no. dimensions for dim reduction")
     parser.add_argument("-sample_strategy", "--sample_strategy", choices=['grid', 'label'], default="label", help="Type of sampler to use for patches")
-    parser.add_argument("-fd", "--full_dataset", type=bool, default=False, help="Use 2D and 3D datasets or not")
+    parser.add_argument("-fd", "--full_dataset", type=bool, default=True, help="Use 2D and 3D datasets or not")
     args = parser.parse_args()
     main(args)
