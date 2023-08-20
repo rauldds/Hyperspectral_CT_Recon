@@ -60,7 +60,8 @@ def main(hparams):
     
     # Initialize Transformations
     transform = music_2d_dataset.JointTransform2D(crop=(hparams.patch_size, hparams.patch_size), p_flip=0.5, color_jitter_params=None, long_mask=True)
-    
+    valid_transform = music_2d_dataset.JointTransform2D(crop=(96, 96), p_flip=0.5, color_jitter_params=None, long_mask=True)
+
     # Intialize Pad
     padding = (0, int(hparams.patch_size/2), int(hparams.patch_size/2))
     pad_transform = tio.Pad(padding)
@@ -160,7 +161,7 @@ def main(hparams):
         path2d=path2d, path3d=path3d,
         partition="valid",
         spectrum=hparams.spectrum, 
-        transform=transform, 
+        transform=valid_transform, 
         full_dataset=hparams.full_dataset,
         dim_red = hparams.dim_red,
         no_dim_red = hparams.no_dim_red
@@ -220,8 +221,7 @@ def main(hparams):
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min',patience=10)
 
     # Define Tensorboard writer
-    tb = SummaryWriter()
-    tb.add_hparams(vars(hparams),{"hparam/accuracy":0,"hparam/loss":10})
+    tb = SummaryWriter(f'runs/patch_size_{hparams.patch_size}')
 
     # Metric: IOU
     loss_criterion = None
@@ -336,10 +336,14 @@ def main(hparams):
             tb.add_scalar("Val_Loss", val_loss, epoch)
             tb.add_scalar("Val_Accuracy", val_acc, epoch)
             tb.add_scalar("Val_IOU", val_iou, epoch)
-            tb.add_image("Val Image", torch.transpose(colored_image, 0, 2), epoch)
+            tb.add_image("Pred Val Image", torch.transpose(colored_image, 0, 2), epoch)
             tb.add_image("Target Val Image", torch.transpose(val_image, 0, 2), epoch)
             print(f'[INFO-Validation][epoch: {epoch:03d}/iteration: {i :03d}] validation_loss: {val_loss:.6f}, validation_acc: {val_acc:.2f}%, validation_IOU: {val_iou:.2f}%')
-
+        if epoch == (hparams.epochs-1):
+            tb.add_hparams(vars(hparams),
+                           {"hparam/train_loss":running_loss, "hparam/train_accuracy":train_accuracy,
+                           "hparam/train_IoU":train_iou, "hparam/valid_loss":val_loss,
+                           "hparam/val_accuracy":val_acc, "hparam/val_iou":val_iou})
 
 if __name__ == "__main__":
     parser = ArgumentParser()

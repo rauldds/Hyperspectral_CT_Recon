@@ -9,12 +9,15 @@ import numpy as np
 import argparse
 from data_utils import dimensionality_reduction
 from  src.DETCTCNN.data.music_2d_labels import MUSIC_2D_LABELS
+from  src.DETCTCNN.data.empty_scans import EMPTY_SCANS
 import torch
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 import torchio as tio
 from torchvision import transforms as T
 from torchvision.transforms import functional as F
+import json
+import random
 
 
 class Dataset(ABC):
@@ -147,10 +150,13 @@ class MUSIC2DDataset(Dataset):
                 data = torch.from_numpy(data).float()
                 self.segmentations.append(data)
                 segmentation_file.close()
-        if self.full_dataset and (self.partition=="train"):
+        if self.full_dataset and (self.partition=="train" or self.partition=="valid"):
+            upper_lim = 10
+            limits = [0,upper_lim]
+            # dict_empty_elements = {}
             for path in os.listdir(self.path3d):
                 # TODO: SHORTER WAY TO DO THIS
-                # with except of README, the rest of folders below don't have a right correspondence
+                # with except of README, the rest of folders below don't have a correct correspondence
                 # between the number of slices and the number of segmentations
                 if (path == "README.md" or path == "Fruits" or
                     path == "Sample_23012018" or path == "Sample_24012018"):
@@ -166,59 +172,27 @@ class MUSIC2DDataset(Dataset):
                     data = np.array(f['data']['value'], order='F')
                     data = dimensionality_reduction(data, self.dim_red, data.shape, self.no_dim_red)
                     data = torch.from_numpy(data).float()
+                    data = np.delete(data, EMPTY_SCANS[path], axis=1)
+                    if self.partition == "train":
+                        limits = [upper_lim, data.shape[1]]
                     # TODO: Might be a more optimal way to do this hehe
-                    for i in range(data.shape[1]):
+                    for i in range(limits[0], limits[1]):
                         self.images.append(data[:, i, :, :])
                 with segmentation_file as f:
+                    #print(path)
+                    #empty_elements = []
                     data = np.array(f['data']['value'], order='F',dtype=np.int16)
                     data = torch.from_numpy(data).float()
-                    for i in range(data.shape[0]):
+                    data = np.delete(data, EMPTY_SCANS[path], axis=0)
+                    for i in range(limits[0], limits[1]):
+                        #if (data[i,:,:].argmax(0)==0).all():
+                            #empty_elements.append(i)
                         self.segmentations.append(data[i, :, :])
-
-if __name__ == "__main__":
-    argParser = argparse.ArgumentParser()
-    argParser.add_argument("-d", "--dataset", 
-                           help="dataset path", type=str, 
-                           default="/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon/MUSIC2D_HDF5")
-    args = argParser.parse_args()
-    DATASET2D_PATH = "/media/rauldds/TOSHIBA EXT/MLMI/MUSIC2D_HDF5"
-    DATASET3D_PATH = "/media/rauldds/TOSHIBA EXT/MLMI/MUSIC3D_HDF5"
-
-    dataset = MUSIC2DDataset(path2d=DATASET2D_PATH, path3d=DATASET3D_PATH,
-                             spectrum="reducedSpectrum", partition="train",full_dataset=False)
-    #print(dataset[:]["classes"])
-    print(len(dataset[:]["image"]))
-    print(len(dataset[:]["segmentation"]))
-    print(dataset[0]["image"].shape)
-    print(dataset[0]["segmentation"].shape)
-    #print(np.argmax(dataset[0]["segmentation"],0).unique())
-    dataset_list = []
-    for data in (dataset):
-        subject = tio.Subject(
-            image=tio.ScalarImage(tensor=data["image"].unsqueeze(0)),
-            segmentation=tio.LabelMap(tensor=torch.argmax(data["segmentation"],0).unsqueeze(0).repeat(1,10,1,1)),
-        )
-        dataset_list.append(subject)
-    SubjectDataset = tio.data.SubjectsDataset(dataset_list)
-    sampler = tio.GridSampler(patch_size=(10, 50, 50),subject=subject)
-    patches_queue = tio.Queue(
-        SubjectDataset,
-        max_length=300,
-        samples_per_volume=2,
-        sampler=sampler,
-        num_workers=1,
-    )
-
-    patches_loader = torch.utils.data.DataLoader(
-        patches_queue,
-        batch_size=16,
-        num_workers=0,  # this must be 0
-    )
-
-    for patches_batch in patches_loader:
-        inputs = patches_batch['image'][tio.DATA]  # key 't1' is in subject
-        targets = patches_batch['segmentation'][tio.DATA]  # key 'brain' is in subject
-        print(targets.shape)
+                    #dict_empty_elements[path] = empty_elements
+            
+            #with open("empty_scans.py", "w") as fp:
+            #    json.dump(dict_empty_elements, fp)  # encode dict into JSON
+            #print("Done writing dict into .txt file")
 
 class MusicTransform:
     def __init__(self, resize=128):
@@ -254,7 +228,7 @@ class JointTransform2D:
             torchvision.transforms.RandomAffine.
         long_mask: bool, if True, returns the mask as LongTensor in label-encoded format.
     """
-    def __init__(self, crop=(256, 256), p_flip=0.5, color_jitter_params=(0.1, 0.1, 0.1, 0.1),
+    def __init__(self, crop=(96, 96), p_flip=0.5, color_jitter_params=(0.1, 0.1, 0.1, 0.1),
                  p_random_affine=0, long_mask=False):
         self.crop = crop
         self.p_flip = p_flip
@@ -270,8 +244,29 @@ class JointTransform2D:
 
         # random crop
         if self.crop:
-            i, j, h, w = T.RandomCrop.get_params(image, self.crop)
-            image, mask = F.crop(image, i, j, h, w), F.crop(mask, i, j, h, w)
+            indices = torch.nonzero((mask.argmax(0) != 0))
+            idx = random.randint(0,len(indices)-1)
+            center = indices[idx]
+            top = max(0,int(center[0]-self.crop[0]/2))
+            left = max(0,int(center[1]-self.crop[0]/2))
+            bottom = min(100,int(center[0]+self.crop[0]/2))
+            right = min(100,int(center[1]+self.crop[0]/2))
+            if top != 0:
+                if bottom == 100:
+                    top = bottom - self.crop[0]
+            if left != 0:
+                if right == 100:
+                    left = right - self.crop[0]
+            
+            #print(top, left, self.crop[0], self.crop[0])
+            image, mask = F.crop(image, top, left, self.crop[0], self.crop[0]), F.crop(mask, top, left, self.crop[0], self.crop[0])
+
+            '''while contains_class == False:
+                i, j, h, w = T.RandomCrop.get_params(image, self.crop)
+                image, mask = F.crop(image, i, j, h, w), F.crop(mask, i, j, h, w)
+                if (mask.argmax(0) != 0).any():
+                    contains_class = True'''
+            
 
         if np.random.rand() < self.p_flip:
             image, mask = F.hflip(image), F.hflip(mask)
@@ -287,3 +282,23 @@ class JointTransform2D:
 
         # transforming to tensor
         return image, mask
+
+if __name__ == "__main__":
+    argParser = argparse.ArgumentParser()
+    argParser.add_argument("-d", "--dataset", 
+                           help="dataset path", type=str, 
+                           default="/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon/MUSIC2D_HDF5")
+    args = argParser.parse_args()
+    DATASET2D_PATH = "/media/rauldds/TOSHIBA EXT/MLMI/MUSIC2D_HDF5"
+    DATASET3D_PATH = "/media/rauldds/TOSHIBA EXT/MLMI/MUSIC3D_HDF5"
+
+    dataset = MUSIC2DDataset(path2d=DATASET2D_PATH, path3d=DATASET3D_PATH,
+                             spectrum="reducedSpectrum", partition="train",full_dataset=True)
+    #print(dataset[:]["classes"])
+    print(len(dataset[:]["image"]))
+    print(len(dataset[:]["segmentation"]))
+    transform = JointTransform2D(crop=(20, 20), p_flip=0.5, color_jitter_params=None, long_mask=True)
+    dataset = MUSIC2DDataset(path2d=DATASET2D_PATH, path3d=DATASET3D_PATH,
+                             spectrum="reducedSpectrum", partition="valid",full_dataset=True, transform=transform)
+    print(len(dataset[:]["image"]))
+    print(len(dataset[:]["segmentation"]))
