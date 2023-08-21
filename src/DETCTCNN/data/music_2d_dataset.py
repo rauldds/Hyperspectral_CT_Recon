@@ -229,10 +229,11 @@ class JointTransform2D:
         long_mask: bool, if True, returns the mask as LongTensor in label-encoded format.
     """
     def __init__(self, crop=(96, 96), p_flip=0.5, color_jitter_params=(0.1, 0.1, 0.1, 0.1),
-                 p_random_affine=0, long_mask=False):
+                 p_random_affine=0, long_mask=False, resize=None):
         self.crop = crop
         self.p_flip = p_flip
         self.color_jitter_params = color_jitter_params
+        self.resize = resize
         if color_jitter_params:
             self.color_tf = T.ColorJitter(*color_jitter_params)
         self.p_random_affine = p_random_affine
@@ -243,30 +244,27 @@ class JointTransform2D:
         # image, mask = F.to_pil_image(image), F.to_pil_image(mask)
 
         # random crop
+
         if self.crop:
-            indices = torch.nonzero((mask.argmax(0) != 0))
-            idx = random.randint(0,len(indices)-1)
-            center = indices[idx]
-            top = max(0,int(center[0]-self.crop[0]/2))
-            left = max(0,int(center[1]-self.crop[0]/2))
-            bottom = min(100,int(center[0]+self.crop[0]/2))
-            right = min(100,int(center[1]+self.crop[0]/2))
-            if top != 0:
-                if bottom == 100:
-                    top = bottom - self.crop[0]
-            if left != 0:
-                if right == 100:
-                    left = right - self.crop[0]
+            # indices = torch.nonzero((mask.argmax(0) != 0))
+            # idx = random.randint(0,len(indices)-1)
+            # center = indices[idx]
+            # top = max(0,int(center[0]-self.crop[0]/2))
+            # left = max(0,int(center[1]-self.crop[0]/2))
+            # bottom = min(100,int(center[0]+self.crop[0]/2))
+            # right = min(100,int(center[1]+self.crop[0]/2))
+            # if top != 0:
+            #     if bottom == 100:
+            #         top = bottom - self.crop[0]
+            # if left != 0:
+            #     if right == 100:
+            #         left = right - self.crop[0]
             
             #print(top, left, self.crop[0], self.crop[0])
-            image, mask = F.crop(image, top, left, self.crop[0], self.crop[0]), F.crop(mask, top, left, self.crop[0], self.crop[0])
+            # image, mask = F.crop(image, top, left, self.crop[0], self.crop[0]), F.crop(mask, top, left, self.crop[0], self.crop[0])
 
-            '''while contains_class == False:
-                i, j, h, w = T.RandomCrop.get_params(image, self.crop)
-                image, mask = F.crop(image, i, j, h, w), F.crop(mask, i, j, h, w)
-                if (mask.argmax(0) != 0).any():
-                    contains_class = True'''
-            
+            i, j, h, w = T.RandomCrop.get_params(image, self.crop)
+            image, mask = F.crop(image, i, j, h, w), F.crop(mask, i, j, h, w)
 
         if np.random.rand() < self.p_flip:
             image, mask = F.hflip(image), F.hflip(mask)
@@ -280,6 +278,9 @@ class JointTransform2D:
             affine_params = T.RandomAffine(180).get_params((-90, 90), (1, 1), (2, 2), (-45, 45), self.crop)
             image, mask = F.affine(image, *affine_params), F.affine(mask, *affine_params)
 
+        if self.resize:
+            print(image.shape)
+            image, mask = F.resize(image, size=self.resize), F.resize(mask, size=self.resize)
         # transforming to tensor
         return image, mask
 
