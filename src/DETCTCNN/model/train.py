@@ -86,7 +86,8 @@ def main(hparams):
         transform=transform, 
         full_dataset=hparams.full_dataset, 
         dim_red = hparams.dim_red,
-        no_dim_red = hparams.no_dim_red
+        no_dim_red = hparams.no_dim_red,
+        band_selection = hparams.band_selection
     )
 
     # Extract the mean, standard deviation, min, and max from the dataset
@@ -166,7 +167,8 @@ def main(hparams):
         transform=valid_transform, 
         full_dataset=hparams.full_dataset,
         dim_red = hparams.dim_red,
-        no_dim_red = hparams.no_dim_red
+        no_dim_red = hparams.no_dim_red,
+        band_selection = hparams.band_selection
     )
 
     # Extract the mean, standard deviation, min, and max from the validation dataset    
@@ -361,11 +363,12 @@ if __name__ == "__main__":
     parser.add_argument("-lr", "--learning_rate", type=float, default=0.00005, help="Learning rate")
     parser.add_argument("-loss", "--loss", type=str, default="ce", help="Loss function")
     parser.add_argument("-n", "--normalize_data", type=bool, default=False, help="Loss function")
-    parser.add_argument("-sp", "--spectrum", type=str, default="reducedSpectrum", help="Spectrum of MUSIC dataset")
+    parser.add_argument("-sp", "--spectrum", type=str, default="fullSpectrum", help="Spectrum of MUSIC dataset")
     parser.add_argument("-ps", "--patch_size", type=int, default=40, help="2D patch size, should be multiple of 128")
     parser.add_argument("-dim_red", "--dim_red", choices=['none', 'pca'], default="none", help="Use dimensionality reduction")
     parser.add_argument("-no_dim_red", "--no_dim_red", type=int, default=5, help="Target no. dimensions for dim reduction")
     parser.add_argument("-sample_strategy", "--sample_strategy", choices=['grid', 'label'], default="label", help="Type of sampler to use for patches")
     parser.add_argument("-fd", "--full_dataset", type=bool, default=True, help="Use 2D and 3D datasets or not")
+    parser.add_argument("-bsel", "--band_selection", type=str, default="./selected_bands_10.pkl", help="path to band list")
     args = parser.parse_args()
     main(args)

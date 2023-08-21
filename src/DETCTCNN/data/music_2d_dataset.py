@@ -3,6 +3,7 @@
 from abc import ABC, abstractmethod
 from email.mime import image
 import os
+import pickle
 import h5py
 from matplotlib import pyplot as plt
 import numpy as np
@@ -42,7 +43,7 @@ class Dataset(ABC):
 class MUSIC2DDataset(Dataset):
     def __init__(self, *args, path2d=None, path3d=None, 
                 transform=None, full_dataset=False, partition="train", 
-                spectrum="fullSpectrum", dim_red=None, no_dim_red=10, **kwargs):
+                spectrum="fullSpectrum", dim_red=None, no_dim_red=10, band_selection = None, **kwargs):
         super().__init__(*args, path2d=path2d, path3d=path3d,
                          transform=transform, partition=partition, 
                          spectrum=spectrum, full_dataset=full_dataset, **kwargs)
@@ -51,6 +52,10 @@ class MUSIC2DDataset(Dataset):
         self.segmentations = []
         self.dim_red = dim_red
         self.no_dim_red = no_dim_red
+        self.band_selection = None
+        if band_selection:
+            bands = pickle.load(open(band_selection, "rb"))
+            self.band_selection = bands
         #Collect all the class names
         for label in MUSIC_2D_LABELS:
             self.classes.append(label)
@@ -143,6 +148,8 @@ class MUSIC2DDataset(Dataset):
                 # Apply dimensionality reduction method to hyperspectral channels
                 data = dimensionality_reduction(data, self.dim_red, data.shape, self.no_dim_red)
                 data = torch.from_numpy(data).float()
+                if self.band_selection is not None:
+                    data[self.band_selection]
                 self.images.append(data)
                 reconstruction_file.close()
             with segmentation_file as f:
@@ -173,6 +180,8 @@ class MUSIC2DDataset(Dataset):
                     data = dimensionality_reduction(data, self.dim_red, data.shape, self.no_dim_red)
                     data = torch.from_numpy(data).float()
                     data = np.delete(data, EMPTY_SCANS[path], axis=1)
+                    if self.band_selection is not None:
+                        data[self.band_selection]
                     if self.partition == "train":
                         limits = [upper_lim, data.shape[1]]
                     # TODO: Might be a more optimal way to do this hehe
