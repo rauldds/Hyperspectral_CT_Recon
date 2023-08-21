@@ -149,7 +149,7 @@ class MUSIC2DDataset(Dataset):
                 data = dimensionality_reduction(data, self.dim_red, data.shape, self.no_dim_red)
                 data = torch.from_numpy(data).float()
                 if self.band_selection is not None:
-                    data[self.band_selection]
+                    data = data[self.band_selection]
                 self.images.append(data)
                 reconstruction_file.close()
             with segmentation_file as f:
@@ -181,7 +181,7 @@ class MUSIC2DDataset(Dataset):
                     data = torch.from_numpy(data).float()
                     data = np.delete(data, EMPTY_SCANS[path], axis=1)
                     if self.band_selection is not None:
-                        data[self.band_selection]
+                        data = data[self.band_selection]
                     if self.partition == "train":
                         limits = [upper_lim, data.shape[1]]
                     # TODO: Might be a more optimal way to do this hehe
