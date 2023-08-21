@@ -1,6 +1,6 @@
 hparams = {
     'lr': 0.001,
-    'epochs': 150,
+    'epochs': 1,
     'batch_size': 4,
     'log_interval': 2,
     'early_stopping_patience': 10,

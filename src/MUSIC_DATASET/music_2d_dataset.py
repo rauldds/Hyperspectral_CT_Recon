@@ -7,9 +7,9 @@ import h5py
 from matplotlib import pyplot as plt
 import numpy as np
 import argparse
-from data_utils import dimensionality_reduction
-from src.DETCTCNN.data.music_2d_labels import MUSIC_2D_LABELS
-from src.DETCTCNN.data.empty_scans import EMPTY_SCANS
+from .data_utils import dimensionality_reduction
+from src.MUSIC_DATASET.utils import MUSIC_2D_LABELS
+from src.MUSIC_DATASET.utils import EMPTY_SCANS
 import torch
 import albumentations as A
 from albumentations.pytorch import ToTensorV2

@@ -1,10 +1,8 @@
 import argparse
 import h5py
 import numpy as np
-import csv
 import os
-from matplotlib import pyplot as plt
-from music_2d_labels import MUSIC_2D_LABELS, MUSIC_2D_SAMPLES, MUSIC_3D_SAMPLES
+from src.MUSIC_DATASET.utils.music_2d_labels import MUSIC_2D_LABELS, MUSIC_2D_SAMPLES, MUSIC_3D_SAMPLES
 
 
 argParser = argparse.ArgumentParser()
