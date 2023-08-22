@@ -255,25 +255,27 @@ class JointTransform2D:
         # random crop
 
         if self.crop:
-            # indices = torch.nonzero((mask.argmax(0) != 0))
-            # idx = random.randint(0,len(indices)-1)
-            # center = indices[idx]
-            # top = max(0,int(center[0]-self.crop[0]/2))
-            # left = max(0,int(center[1]-self.crop[0]/2))
-            # bottom = min(100,int(center[0]+self.crop[0]/2))
-            # right = min(100,int(center[1]+self.crop[0]/2))
-            # if top != 0:
-            #     if bottom == 100:
-            #         top = bottom - self.crop[0]
-            # if left != 0:
-            #     if right == 100:
-            #         left = right - self.crop[0]
+            indices = torch.nonzero((mask.argmax(0) != 0))
+            # Do Smart cropping
+            if indices.nelement() != 0:
+                idx = random.randint(0,len(indices)-1)
+                center = indices[idx]
+                top = max(0,int(center[0]-self.crop[0]/2))
+                left = max(0,int(center[1]-self.crop[0]/2))
+                bottom = min(100,int(center[0]+self.crop[0]/2))
+                right = min(100,int(center[1]+self.crop[0]/2))
+                if top != 0:
+                    if bottom == 100:
+                        top = bottom - self.crop[0]
+                if left != 0:
+                    if right == 100:
+                        left = right - self.crop[0]
             
-            #print(top, left, self.crop[0], self.crop[0])
-            # image, mask = F.crop(image, top, left, self.crop[0], self.crop[0]), F.crop(mask, top, left, self.crop[0], self.crop[0])
-
-            i, j, h, w = T.RandomCrop.get_params(image, self.crop)
-            image, mask = F.crop(image, i, j, h, w), F.crop(mask, i, j, h, w)
+                image, mask = F.crop(image, top, left, self.crop[0], self.crop[0]), F.crop(mask, top, left, self.crop[0], self.crop[0])
+            else:
+                # Do regular cropping
+                i, j, h, w = T.RandomCrop.get_params(image, self.crop)
+                image, mask = F.crop(image, i, j, h, w), F.crop(mask, i, j, h, w)
 
         if np.random.rand() < self.p_flip:
             image, mask = F.hflip(image), F.hflip(mask)
@@ -288,7 +290,6 @@ class JointTransform2D:
             image, mask = F.affine(image, *affine_params), F.affine(mask, *affine_params)
 
         if self.resize:
-            print(image.shape)
             image, mask = F.resize(image, size=self.resize), F.resize(mask, size=self.resize)
         # transforming to tensor
         return image, mask
