@@ -8,7 +8,7 @@ import h5py
 from matplotlib import pyplot as plt
 import numpy as np
 import argparse
-from data_utils import dimensionality_reduction
+from src.DETCTCNN.data.data_utils import dimensionality_reduction
 from  src.DETCTCNN.data.music_2d_labels import MUSIC_2D_LABELS
 from  src.DETCTCNN.data.empty_scans import EMPTY_SCANS
 import torch
