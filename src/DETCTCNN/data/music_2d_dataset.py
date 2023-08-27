@@ -3,6 +3,7 @@
 from abc import ABC, abstractmethod
 from email.mime import image
 import os
+import pickle
 import h5py
 from matplotlib import pyplot as plt
 import numpy as np
@@ -42,7 +43,7 @@ class Dataset(ABC):
 class MUSIC2DDataset(Dataset):
     def __init__(self, *args, path2d=None, path3d=None, 
                 transform=None, full_dataset=False, partition="train", 
-                spectrum="fullSpectrum", dim_red=None, no_dim_red=10, **kwargs):
+                spectrum="fullSpectrum", dim_red=None, no_dim_red=10, band_selection = None, **kwargs):
         super().__init__(*args, path2d=path2d, path3d=path3d,
                          transform=transform, partition=partition, 
                          spectrum=spectrum, full_dataset=full_dataset, **kwargs)
@@ -51,6 +52,10 @@ class MUSIC2DDataset(Dataset):
         self.segmentations = []
         self.dim_red = dim_red
         self.no_dim_red = no_dim_red
+        self.band_selection = None
+        if band_selection:
+            bands = pickle.load(open(band_selection, "rb"))
+            self.band_selection = bands
         #Collect all the class names
         for label in MUSIC_2D_LABELS:
             self.classes.append(label)
@@ -141,6 +146,8 @@ class MUSIC2DDataset(Dataset):
                 if self.spectrum=="fullSpectrum":
                     data = data.squeeze(1)
                 # Apply dimensionality reduction method to hyperspectral channels
+                if self.band_selection is not None:
+                    data = data[self.band_selection]
                 data = dimensionality_reduction(data, self.dim_red, data.shape, self.no_dim_red)
                 data = torch.from_numpy(data).float()
                 self.images.append(data)
@@ -170,6 +177,8 @@ class MUSIC2DDataset(Dataset):
                 #Collect image list
                 with reconstruction_file as f:
                     data = np.array(f['data']['value'], order='F')
+                    if self.band_selection is not None:
+                        data = data[self.band_selection]
                     data = dimensionality_reduction(data, self.dim_red, data.shape, self.no_dim_red)
                     data = torch.from_numpy(data).float()
                     data = np.delete(data, EMPTY_SCANS[path], axis=1)
@@ -246,25 +255,27 @@ class JointTransform2D:
         # random crop
 
         if self.crop:
-            # indices = torch.nonzero((mask.argmax(0) != 0))
-            # idx = random.randint(0,len(indices)-1)
-            # center = indices[idx]
-            # top = max(0,int(center[0]-self.crop[0]/2))
-            # left = max(0,int(center[1]-self.crop[0]/2))
-            # bottom = min(100,int(center[0]+self.crop[0]/2))
-            # right = min(100,int(center[1]+self.crop[0]/2))
-            # if top != 0:
-            #     if bottom == 100:
-            #         top = bottom - self.crop[0]
-            # if left != 0:
-            #     if right == 100:
-            #         left = right - self.crop[0]
+            indices = torch.nonzero((mask.argmax(0) != 0))
+            # Do Smart cropping
+            if indices.nelement() != 0:
+                idx = random.randint(0,len(indices)-1)
+                center = indices[idx]
+                top = max(0,int(center[0]-self.crop[0]/2))
+                left = max(0,int(center[1]-self.crop[0]/2))
+                bottom = min(100,int(center[0]+self.crop[0]/2))
+                right = min(100,int(center[1]+self.crop[0]/2))
+                if top != 0:
+                    if bottom == 100:
+                        top = bottom - self.crop[0]
+                if left != 0:
+                    if right == 100:
+                        left = right - self.crop[0]
             
-            #print(top, left, self.crop[0], self.crop[0])
-            # image, mask = F.crop(image, top, left, self.crop[0], self.crop[0]), F.crop(mask, top, left, self.crop[0], self.crop[0])
-
-            i, j, h, w = T.RandomCrop.get_params(image, self.crop)
-            image, mask = F.crop(image, i, j, h, w), F.crop(mask, i, j, h, w)
+                image, mask = F.crop(image, top, left, self.crop[0], self.crop[0]), F.crop(mask, top, left, self.crop[0], self.crop[0])
+            else:
+                # Do regular cropping
+                i, j, h, w = T.RandomCrop.get_params(image, self.crop)
+                image, mask = F.crop(image, i, j, h, w), F.crop(mask, i, j, h, w)
 
         if np.random.rand() < self.p_flip:
             image, mask = F.hflip(image), F.hflip(mask)
@@ -279,7 +290,6 @@ class JointTransform2D:
             image, mask = F.affine(image, *affine_params), F.affine(mask, *affine_params)
 
         if self.resize:
-            print(image.shape)
             image, mask = F.resize(image, size=self.resize), F.resize(mask, size=self.resize)
         # transforming to tensor
         return image, mask
