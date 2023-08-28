@@ -3,9 +3,9 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 import torch.optim.lr_scheduler as lr_scheduler
 from src.OneD.model import OneDAutoEncoder
-from src.DETCTCNN.data import MUSIC2DDataset
-from src.DETCTCNN.data import MUSIC_2D_LABELS
-from src.DETCTCNN.data import MUSIC_2D_PALETTE
+from src.MUSIC_DATASET import MUSIC2DDataset
+from src.MUSIC_DATASET.utils import MUSIC_2D_LABELS
+from src.MUSIC_DATASET.utils import MUSIC_2D_PALETTE
 from src.OneD.config import hparams
 from utils import image_from_segmentation
 
