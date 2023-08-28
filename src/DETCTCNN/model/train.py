@@ -240,7 +240,7 @@ def main(hparams):
         loss_criterion = DiceLossV2().to(device)
     elif hparams.loss == "focal":
         # Use Weighted Dice Loss
-        loss_criterion = FocalLoss(gamma=3, alpha=dice_weights).to(device)
+        loss_criterion = FocalLoss(gamma=4, alpha=dice_weights).to(device)
     else: # Use both losses
         loss_criterion = CEDiceLoss(weight=dice_weights, ce_weight=0.5).to(device)
 
@@ -371,6 +371,6 @@ if __name__ == "__main__":
     parser.add_argument("-sample_strategy", "--sample_strategy", choices=['grid', 'label'], default="label", help="Type of sampler to use for patches")
     parser.add_argument("-fd", "--full_dataset", type=bool, default=True, help="Use 2D and 3D datasets or not")
     parser.add_argument("-bsel", "--band_selection", type=str, default=None, help="path to band list")
-    parser.add_argument("-ls", "--label_smoothing", type=float, default=None, help="how much label smoothing")
+    parser.add_argument("-ls", "--label_smoothing", type=float, default=0, help="how much label smoothing")
     args = parser.parse_args()
     main(args)
