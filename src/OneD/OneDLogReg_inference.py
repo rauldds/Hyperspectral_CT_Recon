@@ -39,16 +39,11 @@ def main(args):
         pred[i,:] = out
     print(pred.shape)
     pred = pred.unsqueeze(0).permute((0, 3, 1, 2))
+    GT = dataset[args.sample]['segmentation']
+    GT = GT.unsqueeze(0)
+    print(f"segmentation GT shape {GT.shape}")
     image_from_segmentation(pred, LABELS_SIZE, MUSIC_2D_PALETTE, device=device, mode="train")
-    # pred = pred.cpu().numpy().astype(np.uint8)
-    # colored_pred = palette[pred]
-    # print(colored_pred.shape)
-
-    # plt.title("Prediction")
-    # plt.imshow(colored_pred)
-    # plt.axis('off')
-    # plt.show()
-
+    image_from_segmentation(GT, LABELS_SIZE, MUSIC_2D_PALETTE, device=device, mode="GT")
 
 
 if __name__ == "__main__":
@@ -58,7 +53,7 @@ if __name__ == "__main__":
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
     parser.add_argument("-n", "--normalize_data", type=bool, default=False, help="decide if you want to normalize the data")
     parser.add_argument("-sp", "--spectrum", type=str, default="fullSpectrum", help="Spectrum of MUSIC dataset")
-    parser.add_argument("-s", "--sample", type=int, default=256, help="NUmber of slices")
+    parser.add_argument("-s", "--sample", type=int, default=8, help="Number of slices")
     parser.add_argument("-dim_red", "--dim_red", choices=['none', 'pca', 'merge'], default='none', help="Use dimensionality reduction")
     parser.add_argument("-no_dim_red", "--no_dim_red", type=int, default=128, help="Target no. dimensions for dim reduction")
     parser.add_argument("-bsel", "--band_selection", type=str, default="band_selection/band_sel_bsnet_norm_30_bands.pkl", help="path to band list")
