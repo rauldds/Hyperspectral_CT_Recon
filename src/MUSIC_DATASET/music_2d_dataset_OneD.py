@@ -137,12 +137,13 @@ class MUSIC1DDataset(Dataset):
 
         # Remove all zeros for faster training
         nonzero = torch.nonzero(self.segmentations > 0).squeeze()
+        no_zero_samples = nonzero.shape[0] // 16
         zero_idxs = torch.nonzero(self.segmentations == 0).squeeze()
         # print(f"zero indices shape {zero_idxs}")
         self.images = self.images[nonzero]
         background = background[zero_idxs]
         # print(f"background shape {background.shape}")
-        random_background = torch.randperm(background.size(0))[:16320]
+        random_background = torch.randperm(background.size(0))[:no_zero_samples]
         # 'randBackground' contains 16320 samples of black "background pixels"
         randBackground = randBackground[random_background]
         # print(f"self.images shape {self.images.shape}")
