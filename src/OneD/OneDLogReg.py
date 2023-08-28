@@ -1,5 +1,7 @@
 import torch
 
+import torch.nn as nn
+
 class OneDLogReg(torch.nn.Module):
     def __init__(self):
         super(OneDLogReg, self).__init__()
@@ -87,5 +89,7 @@ class OneDLogReg(torch.nn.Module):
 
 
         x9 = self.convolutions(x8)
+        
+        out = nn.functional.softmax(x9,dim=2)
 
-        return x9
+        return out
