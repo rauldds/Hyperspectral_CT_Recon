@@ -128,7 +128,7 @@ class MUSIC1DDataset(Dataset):
         self.images = self.images.permute(0, 2, 3, 1)
         self.images = self.images.reshape(-1, 128)
         self.images = self.images.unsqueeze(1)
-        self.images = self.images.unsqueeze(2)
+        # self.images = self.images.unsqueeze(2)
         self.segmentations = torch.stack(self.segmentations).argmax(dim=1)
         self.segmentations = self.segmentations.reshape(-1)
         # Remove all zeros for faster training
