@@ -87,6 +87,12 @@ def calculate_data_statistics(dataset):
 
 def calculate_min_max(dataset):
     stacked_data = torch.stack(dataset,dim=0)
+    max = stacked_data.amax(dim=(0,2,3))
+    min = stacked_data.amin(dim=(0,2,3)) 
+    return min, max
+
+def calculate_min_max2(dataset):
+    stacked_data = torch.stack(dataset,dim=0)
     max = stacked_data.max()
     min = stacked_data.min() 
     return min, max

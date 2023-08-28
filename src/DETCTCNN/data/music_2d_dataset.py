@@ -174,9 +174,17 @@ class MUSIC2DDataset(Dataset):
                 reconstruction_file = h5py.File(os.path.join(data_path, "reconstruction.h5"),"r")
                 with reconstruction_file as f:
                     data = np.array(f['data']['value'], order='F')
-                    data = torch.from_numpy(data).float()
                     for i in range(data.shape[1]):
-                        self.images.append(data[0:10, i, :, :])
+                        scan = None
+                        if self.spectrum == "reducedSpectrum":
+                            scan = data[0:10, i, :, :]
+                        else:
+                            scan = data[:,i, :,:]
+                        if self.band_selection is not None:
+                            scan = scan[self.band_selection]
+                        scan = dimensionality_reduction(scan, self.dim_red, scan.shape, self.no_dim_red)
+                        scan = torch.from_numpy(scan).float()
+                        self.images.append(scan)
                         # HAD TO DO THIS BECAUSE NUMBER OF SEGMENTATION SLICES DOESN'T COINCIDE WITH THE NUMBER OF SCANS
                         self.segmentations.append(torch.zeros((100,100)))
 
@@ -201,7 +209,6 @@ class MUSIC2DDataset(Dataset):
                 with reconstruction_file as f:
                     data = np.array(f['data']['value'], order='F')
                     data = dimensionality_reduction(data, self.dim_red, data.shape, self.no_dim_red)
-                    data = torch.from_numpy(data).float()
                     if self.eliminate_empty == True:
                         data = np.delete(data, EMPTY_SCANS[path], axis=1)
                     if self.partition == "train":

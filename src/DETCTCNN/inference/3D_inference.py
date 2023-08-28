@@ -3,6 +3,8 @@ import numpy as np
 from torch.utils.data import DataLoader
 from src.DETCTCNN.model.model import get_model
 import torch
+from matplotlib import pyplot as plt
+from matplotlib.widgets import Slider
 import open3d as o3d
 from src.DETCTCNN.data.music_2d_labels import MUSIC_2D_LABELS, MUSIC_2D_PALETTE
 from  src.DETCTCNN.data.music_2d_dataset import MUSIC2DDataset
@@ -12,6 +14,15 @@ INPUT_CHANNELS ={
     "reducedSpectrum": 10,
     "fullSpectrum":128
 }
+
+fig, ax = plt.subplots()
+volume = 0
+
+
+def update_slice(val):
+    ax.cla()
+    ax.imshow(volume[int(val)])
+    fig.canvas.draw_idle()
 
 def rotate_view(vis):
     ctr = vis.get_view_control()
@@ -33,9 +44,16 @@ def pointcloud_converter(data):
 
 
 def main(args):
+    global volume
     # Access the dataset folders
     path2d = args.data_root + "/MUSIC2D_HDF5"
     path3d = args.data_root + "/MUSIC3D_HDF5"
+
+    energy_levels = 10
+    if args.spectrum != "reducedSpectrum":
+        energy_levels = 128
+    if args.dim_red != "none" or args.band_selection is not None:
+        energy_levels = args.no_dim_red
 
     train_dataset = MUSIC2DDataset(
         path2d=path2d, path3d=path3d, 
@@ -64,9 +82,12 @@ def main(args):
         dataset.images = list(map(lambda x: standardize(x,mean,std) , dataset.images))
         min, max  = calculate_min_max(train_dataset.images)
         dataset.images = list(map(lambda x: normalize(x,min,max) , dataset.images))
-    model = get_model(input_channels=INPUT_CHANNELS[args.spectrum], n_labels=args.n_labels, 
+    #model = get_model(input_channels=INPUT_CHANNELS[args.spectrum], n_labels=args.n_labels, 
+    #                  use_bn=True, basic_out_channel=16, depth=2, dropout=0.5)
+    #checkpoint = torch.load("model.pt", 
+    model = get_model(input_channels=energy_levels, n_labels=args.n_labels, 
                       use_bn=True, basic_out_channel=16, depth=1, dropout=0.5)
-    checkpoint = torch.load("./model.pt", 
+    checkpoint = torch.load("./model_bsnet30merge.pt", 
                             map_location=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
@@ -103,17 +124,30 @@ def main(args):
     o3d.io.write_point_cloud("test.ply",pcl)
     o3d.visualization.draw_geometries_with_animation_callback([pcl],rotate_view,
                                   window_name="Material Segmentation Prediction 3D Visualization")
+    
+    volume = np.asarray(palette[volume])
+
+    plt.title("Slices")
+    plt.subplots_adjust(bottom=0.15)
+    ax.imshow(volume[0])
+
+    ax_energy = plt.axes([0.25, 0.05, 0.5, 0.03])
+    slider_slice = Slider(ax_energy, 'Sinogram No.', 0, (volume.shape[0]-1), valinit=0, valfmt='%d')
+    slider_slice.on_changed(update_slice)
+
+    plt.show()
+
 
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("-dr", "--data_root", type=str, default="/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon", help="Data root directory")
     parser.add_argument("-bs", "--batch_size", type=int, default=2, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
-    parser.add_argument("-n", "--normalize_data", type=bool, default=True, help="decide if you want to normalize the data")
+    parser.add_argument("-n", "--normalize_data", type=bool, default=False, help="decide if you want to normalize the data")
     parser.add_argument("-sp", "--spectrum", type=str, default="reducedSpectrum", help="Spectrum of MUSIC dataset")
-    parser.add_argument("-dim_red", "--dim_red", choices=['none', 'pca', 'merge'], default="merge", help="Use dimensionality reduction")
+    parser.add_argument("-dim_red", "--dim_red", choices=['none', 'pca', 'merge'], default="none", help="Use dimensionality reduction")
     parser.add_argument("-no_dim_red", "--no_dim_red", type=int, default=10, help="Target no. dimensions for dim reduction")
-    parser.add_argument("-bsel", "--band_selection", type=str, default="band_selection/band_sel_bsnet_30_bands.pkl", help="path to band list")
+    parser.add_argument("-bsel", "--band_selection", type=str, default=None, help="path to band list")
     args = parser.parse_args()
 
     main(args)
