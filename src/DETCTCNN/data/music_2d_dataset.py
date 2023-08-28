@@ -43,7 +43,8 @@ class Dataset(ABC):
 class MUSIC2DDataset(Dataset):
     def __init__(self, *args, path2d=None, path3d=None, 
                 transform=None, full_dataset=False, partition="train", 
-                spectrum="fullSpectrum", dim_red=None, no_dim_red=10, band_selection = None, **kwargs):
+                spectrum="fullSpectrum", dim_red=None, no_dim_red=10, eliminate_empty=True, band_selection = None, **kwargs):
+
         super().__init__(*args, path2d=path2d, path3d=path3d,
                          transform=transform, partition=partition, 
                          spectrum=spectrum, full_dataset=full_dataset, **kwargs)
@@ -52,6 +53,7 @@ class MUSIC2DDataset(Dataset):
         self.segmentations = []
         self.dim_red = dim_red
         self.no_dim_red = no_dim_red
+        self.eliminate_empty =eliminate_empty
         self.band_selection = None
         if band_selection:
             bands = pickle.load(open(band_selection, "rb"))
@@ -130,6 +132,9 @@ class MUSIC2DDataset(Dataset):
             elif self.partition == "test" and not (path == "sample20" or
                                                path == "sample2"):
                 continue
+            elif self.partition == "test3D":
+                continue
+            #print(path)
             #TODO: Probably good to start with reduced spectrum instead of fullspectrum
             data_path = os.path.join(self.path2d, path, self.spectrum, "reconstruction")
             segmentation_file = h5py.File(os.path.join(self.path2d, path, "manualSegmentation",
@@ -157,6 +162,24 @@ class MUSIC2DDataset(Dataset):
                 data = torch.from_numpy(data).float()
                 self.segmentations.append(data)
                 segmentation_file.close()
+        if self.full_dataset and (self.partition=="test3D"):
+            test_samples = ["Sample_23012018", "Sample_24012018"]
+            idx = random.randint(0,1)
+            for path in os.listdir(self.path3d):
+                if (path != test_samples[idx]):
+                    continue
+
+                data_path = os.path.join(self.path3d, path, self.spectrum, "reconstruction")
+                # Open reconstructions
+                reconstruction_file = h5py.File(os.path.join(data_path, "reconstruction.h5"),"r")
+                with reconstruction_file as f:
+                    data = np.array(f['data']['value'], order='F')
+                    data = torch.from_numpy(data).float()
+                    for i in range(data.shape[1]):
+                        self.images.append(data[0:10, i, :, :])
+                        # HAD TO DO THIS BECAUSE NUMBER OF SEGMENTATION SLICES DOESN'T COINCIDE WITH THE NUMBER OF SCANS
+                        self.segmentations.append(torch.zeros((100,100)))
+
         if self.full_dataset and (self.partition=="train" or self.partition=="valid"):
             upper_lim = 10
             limits = [0,upper_lim]
@@ -169,15 +192,18 @@ class MUSIC2DDataset(Dataset):
                     path == "Sample_23012018" or path == "Sample_24012018"):
                     continue
                 data_path = os.path.join(self.path3d, path, self.spectrum, "reconstruction")
-                segmentation_file = h5py.File(os.path.join(self.path3d, path, 
-                                            "manualSegmentation", 
+                segmentation_file = h5py.File(os.path.join(self.path3d, path,
+                                            "manualSegmentation",
                                             "manualSegmentation_global.h5"))
                 # Open reconstructions
                 reconstruction_file = h5py.File(os.path.join(data_path, "reconstruction.h5"),"r")
                 #Collect image list
                 with reconstruction_file as f:
                     data = np.array(f['data']['value'], order='F')
-                    data = np.delete(data, EMPTY_SCANS[path], axis=1)
+                    data = dimensionality_reduction(data, self.dim_red, data.shape, self.no_dim_red)
+                    data = torch.from_numpy(data).float()
+                    if self.eliminate_empty == True:
+                        data = np.delete(data, EMPTY_SCANS[path], axis=1)
                     if self.partition == "train":
                         limits = [upper_lim, data.shape[1]]
                     # TODO: Might be a more optimal way to do this hehe
@@ -193,7 +219,8 @@ class MUSIC2DDataset(Dataset):
                     #empty_elements = []
                     data = np.array(f['data']['value'], order='F',dtype=np.int16)
                     data = torch.from_numpy(data).float()
-                    data = np.delete(data, EMPTY_SCANS[path], axis=0)
+                    if self.eliminate_empty == True:
+                        data = np.delete(data, EMPTY_SCANS[path], axis=0)
                     for i in range(limits[0], limits[1]):
                         #if (data[i,:,:].argmax(0)==0).all():
                             #empty_elements.append(i)
