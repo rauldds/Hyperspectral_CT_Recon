@@ -48,7 +48,7 @@ class MUSIC1DDataset(Dataset):
         self._load_data()
 
     def __len__(self):
-        return self.images.shape[0]
+        return len(self.images)
 
     def __getitem__(self, index):
         return {"image": self.images[index], "segmentation": self.segmentations[index]}
@@ -128,7 +128,7 @@ class MUSIC1DDataset(Dataset):
         self.images = self.images.permute(0, 2, 3, 1)
         self.images = self.images.reshape(-1, 128)
         self.images = self.images.unsqueeze(1)
-        self.images = self.images.unsqueeze(2)
+        # self.images = self.images.unsqueeze(2)
         self.segmentations = torch.stack(self.segmentations).argmax(dim=1)
         self.segmentations = self.segmentations.reshape(-1)
         # Remove all zeros for faster training
@@ -150,4 +150,5 @@ if __name__ == "__main__":
 
     dataset = MUSIC1DDataset(path2d=DATASET2D_PATH, path3d=DATASET3D_PATH,
                              spectrum="fullSpectrum", partition="train", full_dataset=True)
-    # print(dataset[:]["classes"])
+    print(dataset[0]['image'].shape)
+    print(len(dataset))
