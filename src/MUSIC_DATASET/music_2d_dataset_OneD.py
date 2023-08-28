@@ -128,13 +128,32 @@ class MUSIC1DDataset(Dataset):
         self.images = self.images.permute(0, 2, 3, 1)
         self.images = self.images.reshape(-1, 128)
         self.images = self.images.unsqueeze(1)
-        # self.images = self.images.unsqueeze(2)
+        background = self.images
+        randBackground = self.images
+        # self.images shape: torch.Size([4370000, 1, 128])
         self.segmentations = torch.stack(self.segmentations).argmax(dim=1)
         self.segmentations = self.segmentations.reshape(-1)
+        randBackgroundSeg = self.segmentations
+
         # Remove all zeros for faster training
         nonzero = torch.nonzero(self.segmentations > 0).squeeze()
+        zero_idxs = torch.nonzero(self.segmentations == 0).squeeze()
+        # print(f"zero indices shape {zero_idxs}")
         self.images = self.images[nonzero]
+        background = background[zero_idxs]
+        # print(f"background shape {background.shape}")
+        random_background = torch.randperm(background.size(0))[:16320]
+        # 'randBackground' contains 16320 samples of black "background pixels"
+        randBackground = randBackground[random_background]
+        # print(f"self.images shape {self.images.shape}")
+        # print(f"randBackground shape {randBackground.shape}")
+        self.images = torch.cat((self.images, randBackground), dim=0)
+        # print(f"concat self images with background shape {self.images.shape}")
+
+
         self.segmentations = self.segmentations[nonzero]
+        randBackgroundSeg = randBackgroundSeg[random_background]
+        self.segmentations = torch.cat((self.segmentations, randBackgroundSeg), dim=0)
         self.images = list(self.images)
         self.segmentations = list(self.segmentations)
 
