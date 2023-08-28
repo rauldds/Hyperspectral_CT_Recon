@@ -13,6 +13,9 @@ palette = np.array(MUSIC_2D_PALETTE)
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
 model = OneDLogReg().to(device=device)
+checkpoint = torch.load("checkpoints/model.pth", 
+                        map_location=torch.device(device=device))
+model.load_state_dict(checkpoint['model_state_dict'])
 model.eval()
 
 
