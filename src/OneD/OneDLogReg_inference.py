@@ -16,7 +16,6 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "mps" if torch.
 model = OneDLogReg().to(device=device)
 checkpoint = torch.load("best_model.pth",
                         map_location=torch.device(device=device))
-print(type(checkpoint))
 model.load_state_dict(checkpoint)
 model.eval()
 
