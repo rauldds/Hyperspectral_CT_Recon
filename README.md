@@ -53,53 +53,53 @@ Once the docker file has been compiled you can simply run by executing:
 
 This project contains several sub-topics explored during the Praktikum in order to achieve good results with Hyperspectral data.
 
-1. Data Preprocessing, Exploration and Dimensionality Reduction
+## Data Preprocessing, Exploration and Dimensionality Reduction
     1. The original data contained segmentations that are not appropriate for learning methods. Therefore, data preprocessing files can be found [here](src/DETCTCNN/data)
     2. The full dataset consists of volumes with 128 hyperspectral bands, where we easily identify a curse of dimensionality. Therefore we performed some [data exploration](src/data). In particular, we explore what bands are more informative per class,dimensionality reduction techniques like PCA, and exploring data separation with UMAP.
     3. As PCA was not very useful, we explored Band Selection techniques, such as [OPBS](https://ieeexplore.ieee.org/document/8320544) in [here](src/data/opbs.py) and [BSNet](https://arxiv.org/abs/1904.08269) in [here](./band_selection).
 
-2. Segmentation with 2D Convolutions.
+## Segmentation with 2D Convolutions.
 
 Since we are lacking a substantial amount of 3D data (~4 samples with usable segmentations), we implemented a [2D Convolutional network](src/DETCTCNN/model) based off [DECTCNN](https://pubmed.ncbi.nlm.nih.gov/31816095/) but adapted to Hyperspectral data.
 
-## Training
+### Training
 
 ```
     python src/DETCTCNN/model/train.py 
 ```
 
-## Inference
+### Inference
 
 
-### Slice Inference
+#### Slice Inference
 
 ```
     python src/DETCTCNN/model/inference.py 
 ```
 
-### Volume Inference
+#### Volume Inference
 ```
     python src/DETCTCNN/inference/3D_inference.py 
 ```
 
-3. Segmentation with 1D Convolutions.
+## Segmentation with 1D Convolutions.
 
 As we explored into the effects of changing the receptive field of our network to redirect focus on hyperspectral data, we posed the segmentation challenge as a per-pixel classification problem. Thus, we implemented a [1D Convolutional network](src/OneD) for the segmentation problem.
 
-## Training
+### Training
 
 ```
     python src/OneD/OneDLogReg_train.py
 ```
 
-## Inference
+### Inference
 
 
-### Slice Inference
+#### Slice Inference
 ```
     python src/oned/onedlogreg_inference.py
 ```
 
-### Volume Inference
+#### Volume Inference
 ```
     python src/OneD/OneDLogReg_3Dinference.py
