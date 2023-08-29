@@ -1,4 +1,5 @@
 numpy
+torch
 torchio
 albumentations
 tensorboard
