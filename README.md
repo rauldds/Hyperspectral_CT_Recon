@@ -54,9 +54,10 @@ Once the docker file has been compiled you can simply run by executing:
 This project contains several sub-topics explored during the Praktikum in order to achieve good results with Hyperspectral data.
 
 ## Data Preprocessing, Exploration and Dimensionality Reduction
-    1. The original data contained segmentations that are not appropriate for learning methods. Therefore, data preprocessing files can be found [here](src/DETCTCNN/data)
-    2. The full dataset consists of volumes with 128 hyperspectral bands, where we easily identify a curse of dimensionality. Therefore we performed some [data exploration](src/data). In particular, we explore what bands are more informative per class,dimensionality reduction techniques like PCA, and exploring data separation with UMAP.
-    3. As PCA was not very useful, we explored Band Selection techniques, such as [OPBS](https://ieeexplore.ieee.org/document/8320544) in [here](src/data/opbs.py) and [BSNet](https://arxiv.org/abs/1904.08269) in [here](./band_selection).
+
+1. The original data contained segmentations that are not appropriate for learning methods. Therefore, data preprocessing files can be found [here](src/DETCTCNN/data)
+2. The full dataset consists of volumes with 128 hyperspectral bands, where we easily identify a curse of dimensionality. Therefore we performed some [data exploration](src/data). In particular, we explore what bands are more informative per class,dimensionality reduction techniques like PCA, and exploring data separation with UMAP.
+3. As PCA was not very useful, we explored Band Selection techniques, such as [OPBS](https://ieeexplore.ieee.org/document/8320544) in [here](src/data/opbs.py) and [BSNet](https://arxiv.org/abs/1904.08269) in [here](./band_selection).
 
 ## Segmentation with 2D Convolutions.
 

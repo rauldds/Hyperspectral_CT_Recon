@@ -67,6 +67,7 @@ docs/_build/
 # FOLDERS
 src/DETCTCNN/model/runs/
 runs/
+runs*/
 img/
 checkpoints/
 
