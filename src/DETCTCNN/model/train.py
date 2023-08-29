@@ -59,6 +59,8 @@ def calculate_accuracy(pred_tensor, target_tensor):
 
 def main(hparams):
     
+    print("Hyperparameters:")
+    print(hparams)
     # Initialize Transformations
     transform = music_2d_dataset.JointTransform2D(crop=(hparams.patch_size, hparams.patch_size), p_flip=0.5, color_jitter_params=None, long_mask=True)
     valid_transform = music_2d_dataset.JointTransform2D(crop=(96, 96), p_flip=0.5, color_jitter_params=None, long_mask=True)
@@ -218,11 +220,11 @@ def main(hparams):
 
     # Call U-Net model
     print("Creating Model...")
-    model = get_model(input_channels=energy_levels, n_labels=hparams.n_labels, use_bn=True, basic_out_channel=16, depth=1, dropout=0.5)
+    model = get_model(input_channels=energy_levels, n_labels=hparams.n_labels, use_bn=True, basic_out_channel=64, depth=2, dropout=0.5)
     model.to(device=device)
     
     # Define ADAM optimizer
-    optimizer = torch.optim.Adam(model.parameters(), betas=([0.9, 0.999]), lr = hparams.learning_rate)
+    optimizer = torch.optim.Adam(model.parameters(), betas=([0.9, 0.999]), lr = hparams.learning_rate, weight_decay = 0.00001)
 
     # Define Learning Rate Scheduler 
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min',patience=10)
@@ -358,7 +360,7 @@ if __name__ == "__main__":
     parser.add_argument("-dr", "--data_root", type=str, default="/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon", help="Data root directory")
     parser.add_argument("-ve", "--validate_every", type=int, default=10, help="Validate after each # of iterations")
     parser.add_argument("-pe", "--print_every", type=int, default=10, help="print info after each # of epochs")
-    parser.add_argument("-e", "--epochs", type=int, default=310, help="Number of maximum training epochs")
+    parser.add_argument("-e", "--epochs", type=int, default=500, help="Number of maximum training epochs")
     parser.add_argument("-bs", "--batch_size", type=int, default=1, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
     parser.add_argument("-lr", "--learning_rate", type=float, default=0.0007, help="Learning rate")
@@ -371,6 +373,6 @@ if __name__ == "__main__":
     parser.add_argument("-sample_strategy", "--sample_strategy", choices=['grid', 'label'], default="label", help="Type of sampler to use for patches")
     parser.add_argument("-fd", "--full_dataset", type=bool, default=True, help="Use 2D and 3D datasets or not")
     parser.add_argument("-bsel", "--band_selection", type=str, default=None, help="path to band list")
-    parser.add_argument("-ls", "--label_smoothing", type=float, default=0, help="how much label smoothing")
+    parser.add_argument("-ls", "--label_smoothing", type=float, default=0.0, help="how much label smoothing")
     args = parser.parse_args()
     main(args)
