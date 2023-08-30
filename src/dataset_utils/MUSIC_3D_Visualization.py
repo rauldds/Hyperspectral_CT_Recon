@@ -7,6 +7,7 @@ from matplotlib.widgets import Slider
 import open3d as o3d
 from collections import Counter
 import os
+from src.DETCTCNN.data.music_2d_labels import MUSIC_2D_PALETTE
 
 idx = 0
 step = 0
@@ -25,7 +26,7 @@ def pointcloud_converter(data):
                 if data[x,y,z]!=0:
                     point = [[x],[y],[z]]
                     points.append(point)
-                    classes.append(data[x,y,z])
+                    classes.append(int(data[x,y,z]))
     points = (np.asarray(points)).squeeze(2)
     return points, classes
 
@@ -99,19 +100,21 @@ while True:
 # END: SAMPLE SELECTION
 
 # 3D Visualization Manual Segmentation
-with h5py.File(DATASET_PATH+ "/"+file+'/manualSegmentation/manualSegmentation.h5', 'r') as f:
+with h5py.File(DATASET_PATH+ "/"+file+'/manualSegmentation/manualSegmentation_global.h5', 'r') as f:
     data = np.array(f['data']['value'], order='F').transpose()
-    
+    data = data.argmax(2)
 points, classes = pointcloud_converter(data)
 
 num_classes = len(Counter(classes).keys())
 
-point_colors = pointcloud_colorizer(classes,num_classes)
+palette = np.array(MUSIC_2D_PALETTE)
+
+point_colors = np.asarray(palette[classes])
 
 #Conversion of point cloud to o3d format
 pcl = o3d.geometry.PointCloud()
 pcl.points = o3d.utility.Vector3dVector(points[:,:])
-pcl.colors = o3d.utility.Vector3dVector(point_colors)
+pcl.colors = o3d.utility.Vector3dVector(point_colors/255)
 
 '''o3d.visualization.draw_geometries([pcl],
                                   zoom=0.664,
