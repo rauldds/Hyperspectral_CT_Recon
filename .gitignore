@@ -64,6 +64,9 @@ docs/_build/
 #CKPTS
 *.pt
 
+# Mesh/Point Cloud files
+*.ply
+
 # FOLDERS
 src/DETCTCNN/model/runs/
 runs/
@@ -76,3 +79,4 @@ src/OneD/pg.py
 src/pytorch-UNet/checkpoint/*
 src/pytorch-UNet/output/*
 Experiments
+src/DETCTCNN/model/multiple_trainings.py

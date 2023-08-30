@@ -65,7 +65,8 @@ def main(args):
     model = get_model(input_channels=INPUT_CHANNELS[args.spectrum], n_labels=args.n_labels, 
                       use_bn=True, basic_out_channel=16, depth=2, dropout=0.5)
     checkpoint = torch.load("model.pt", 
-                            map_location=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+                            map_location=torch.device("cpu"))
+                            #map_location=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
     palette = np.array(MUSIC_2D_PALETTE)
@@ -120,7 +121,7 @@ if __name__ == "__main__":
     parser.add_argument("-dr", "--data_root", type=str, default="/media/rauldds/TOSHIBA EXT/MLMI", help="Data root directory")
     parser.add_argument("-bs", "--batch_size", type=int, default=2, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
-    parser.add_argument("-n", "--normalize_data", type=bool, default=True, help="decide if you want to normalize the data")
+    parser.add_argument("-n", "--normalize_data", type=bool, default=False, help="decide if you want to normalize the data")
     parser.add_argument("-sp", "--spectrum", type=str, default="reducedSpectrum", help="Spectrum of MUSIC dataset")
     args = parser.parse_args()
 
