@@ -43,7 +43,8 @@ class Dataset(ABC):
 class MUSIC2DDataset(Dataset):
     def __init__(self, *args, path2d=None, path3d=None, 
                 transform=None, full_dataset=False, partition="train", 
-                spectrum="fullSpectrum", dim_red=None, no_dim_red=10, eliminate_empty=True, band_selection = None, **kwargs):
+                spectrum="fullSpectrum", dim_red=None, no_dim_red=10, eliminate_empty=True, band_selection = None,
+                include_nonthreat=False, **kwargs):
 
         super().__init__(*args, path2d=path2d, path3d=path3d,
                          transform=transform, partition=partition, 
@@ -55,6 +56,7 @@ class MUSIC2DDataset(Dataset):
         self.no_dim_red = no_dim_red
         self.eliminate_empty =eliminate_empty
         self.band_selection = None
+        self.include_nonthreat = include_nonthreat
         if band_selection:
             bands = pickle.load(open(band_selection, "rb"))
             self.band_selection = bands
@@ -197,7 +199,9 @@ class MUSIC2DDataset(Dataset):
                 # with except of README, the rest of folders below don't have a correct correspondence
                 # between the number of slices and the number of segmentations
                 if (path == "README.md" or path == "Fruits" or
-                    path == "Sample_23012018" or path == "Sample_24012018"):
+                    path == "Sample_23012018" or path == "Sample_24012018"
+                    or (not self.include_nonthreat and path == "NonThreat")    
+                ):
                     continue
                 data_path = os.path.join(self.path3d, path, self.spectrum, "reconstruction")
                 segmentation_file = h5py.File(os.path.join(self.path3d, path,
@@ -208,7 +212,6 @@ class MUSIC2DDataset(Dataset):
                 #Collect image list
                 with reconstruction_file as f:
                     data = np.array(f['data']['value'], order='F')
-                    data = dimensionality_reduction(data, self.dim_red, data.shape, self.no_dim_red)
                     if self.eliminate_empty == True:
                         data = np.delete(data, EMPTY_SCANS[path], axis=1)
                     if self.partition == "train":
