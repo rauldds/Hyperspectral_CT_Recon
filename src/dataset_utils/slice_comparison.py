@@ -3,10 +3,12 @@ import argparse
 import h5py
 import numpy as np
 from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt2
 from matplotlib.widgets import Slider
 import open3d as o3d
 from collections import Counter
 import os
+import torch
 
 idx = 0
 step = 0
@@ -72,7 +74,7 @@ def update_seg(val):
     global idx_seg
     step = int(slider_seg.val)
     ax.cla()
-    ax.imshow(segmentation[:,:, step])
+    ax.imshow(segmentation[step, :,:])
     fig.canvas.draw_idle()
 
 
@@ -108,13 +110,14 @@ while True:
 # END: SAMPLE SELECTION
 
 with h5py.File(DATASET_PATH+ "/"+file+'/manualSegmentation/manualSegmentation_global.h5', 'r') as f:
-    segmentation = np.array(f['data']['value'], order='F').transpose()
+    segmentation = np.array(f['data']['value'], order='F',dtype=np.int16)
 #Visualization of Slices
 with h5py.File(DATASET_PATH + "/" + file
                 + '/reducedSpectrum/reconstruction/reconstruction.h5', 'r') as f:
     data = np.array(f['data']['value'], order='F')
 
-segmentation = segmentation.argmax(2)
+data = torch.from_numpy(data)
+segmentation = torch.from_numpy(segmentation).argmax(1)
 
 fig, ax = plt.subplots()
 plt.title("Slices")
@@ -129,14 +132,14 @@ slider_step = Slider(ax_step, 'Step No.', 0, data.shape[1]-1, valinit=0, valfmt=
 slider_step.on_changed(update_step)
 
 plt.show()
-print(segmentation[:,:,0].shape)
+print(segmentation[0,:,:].shape)
 
-fig, ax = plt.subplots()
-plt.title("Segs")
+fig, ax = plt2.subplots()
+plt2.title("Segs")
 plt.subplots_adjust(bottom=0.15)
-ax.imshow(segmentation[:,:,0])
+ax.imshow(segmentation[0,:,:])
 ax_seg = plt.axes([0.25, 0.1, 0.5, 0.03])
 slider_seg = Slider(ax_seg, 'Step No.', 0, data.shape[1]-1, valinit=0, valfmt='%d')
 slider_seg.on_changed(update_seg)
 
-plt.show()
+plt2.show()
