@@ -44,7 +44,7 @@ class MUSIC2DDataset(Dataset):
     def __init__(self, *args, path2d=None, path3d=None, 
                 transform=None, full_dataset=False, partition="train", 
                 spectrum="fullSpectrum", dim_red=None, no_dim_red=10, eliminate_empty=True, band_selection = None,
-                include_nonthreat=True, **kwargs):
+                include_nonthreat=True, oversample_2D=1, **kwargs):
 
         super().__init__(*args, path2d=path2d, path3d=path3d,
                          transform=transform, partition=partition, 
@@ -57,6 +57,7 @@ class MUSIC2DDataset(Dataset):
         self.eliminate_empty =eliminate_empty
         self.band_selection = None
         self.include_nonthreat = include_nonthreat
+        self.oversample_2D = oversample_2D
         if band_selection:
             bands = pickle.load(open(band_selection, "rb"))
             self.band_selection = bands
@@ -157,12 +158,14 @@ class MUSIC2DDataset(Dataset):
                     data = data[self.band_selection]
                 data = dimensionality_reduction(data, self.dim_red, data.shape, self.no_dim_red)
                 data = torch.from_numpy(data).float()
-                self.images.append(data)
+                for i in range(self.oversample_2D):
+                    self.images.append(data)
                 reconstruction_file.close()
             with segmentation_file as f:
                 data = np.array(f['data']['value'], order='F')
                 data = torch.from_numpy(data).float()
-                self.segmentations.append(data)
+                for i in range(self.oversample_2D):
+                    self.segmentations.append(data)
                 segmentation_file.close()
         if self.full_dataset and (self.partition=="test3D"):
             test_samples = ["Sample_23012018", "Sample_24012018"]
