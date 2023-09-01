@@ -82,6 +82,7 @@ def main(args):
         dataset.images = list(map(lambda x: standardize(x,mean,std) , dataset.images))
         min, max  = calculate_min_max(train_dataset.images)
         dataset.images = list(map(lambda x: normalize(x,min,max) , dataset.images))
+
     #model = get_model(input_channels=INPUT_CHANNELS[args.spectrum], n_labels=args.n_labels, 
     #                  use_bn=True, basic_out_channel=16, depth=2, dropout=0.5)
     #checkpoint = torch.load("model.pt", 
@@ -89,6 +90,7 @@ def main(args):
                       use_bn=True, basic_out_channel=16, depth=1, dropout=0.5)
     checkpoint = torch.load("./model_bsnet30merge.pt", 
                             map_location=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+    
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
     palette = np.array(MUSIC_2D_PALETTE)

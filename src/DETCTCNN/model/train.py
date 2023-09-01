@@ -1,4 +1,5 @@
 from argparse import ArgumentParser
+from ast import arg
 import datetime
 from sys import path
 from typing import Dict
@@ -58,9 +59,11 @@ def calculate_accuracy(pred_tensor, target_tensor):
     return accuracy
 
 def main(hparams):
-    
+    #REFERENCE LOSS TO SAVE THE MODEL
+    ref_iou = 0
     print("Hyperparameters:")
     print(hparams)
+    
     # Initialize Transformations
     transform = music_2d_dataset.JointTransform2D(crop=(hparams.patch_size, hparams.patch_size), p_flip=0.5, color_jitter_params=None, long_mask=True, p_random_affine=0.20)
     valid_transform = music_2d_dataset.JointTransform2D(crop=(96, 96), p_flip=0.5, color_jitter_params=None, long_mask=True)
@@ -103,7 +106,7 @@ def main(hparams):
         train_dataset.images = list(map(lambda x: normalize(x,min,max) , train_dataset.images))
     
     ################################################################
-    #########       START: Congifs for patch training     ##########
+    #########       START: Configs for patch training     ##########
     ################################################################
 
     train_loader = DataLoader(dataset=train_dataset, batch_size=hparams.batch_size,shuffle=True)
@@ -135,12 +138,24 @@ def main(hparams):
     ################################################################
 
     # Weights to define how representative is each class during loss estimation
+    weights_dataset = MUSIC2DDataset(
+        path2d=path2d, path3d=path3d,
+        partition="train", 
+        spectrum=hparams.spectrum,
+        transform=None, 
+        full_dataset=hparams.full_dataset, 
+        dim_red = hparams.dim_red,
+        no_dim_red = hparams.no_dim_red,
+        eliminate_empty=False
+    )
+
     print("Generating Weights...")
-    dice_weights = class_weights(dataset=train_dataset, n_classes=len(MUSIC_2D_LABELS))
-    #dice_weights = class_weights_sklearn(dataset=train_dataset, n_classes=len(MUSIC_2D_LABELS))
+    dice_weights = class_weights(dataset=weights_dataset, n_classes=len(MUSIC_2D_LABELS))
+    #dice_weights = class_weights_sklearn(dataset=weights_dataset, n_classes=len(MUSIC_2D_LABELS))
+
     # Check dice weights used to weight loss function
     dice_weights = dice_weights.float().to(device=device)
-    # print(dice_weights)
+    print(dice_weights)
 
     # Call U-Net model
     print("Creating Model...")
@@ -151,10 +166,10 @@ def main(hparams):
     optimizer = torch.optim.Adam(model.parameters(), betas=([0.9, 0.999]), lr = hparams.learning_rate)
 
     # Define Learning Rate Scheduler 
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min',patience=10)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=50, factor=0.5)
 
     # Define Tensorboard writer
-    tb = SummaryWriter(f'runs/patch_size_{hparams.patch_size}_{datetime.datetime.now().strftime("%b%d_%H-%M-%S")}')
+    tb = SummaryWriter(f'runs/{hparams.experiment_name}/patch_size_{hparams.patch_size}_{datetime.datetime.now().strftime("%b%d_%H-%M-%S")}')
 
     # Metric: IOU
     loss_criterion = None
@@ -166,7 +181,7 @@ def main(hparams):
         loss_criterion = DiceLossV2().to(device)
     elif hparams.loss == "focal":
         # Use Weighted Dice Loss
-        loss_criterion = FocalLoss(gamma=4, alpha=dice_weights).to(device)
+        loss_criterion = FocalLoss(gamma=hparams.gamma, alpha=dice_weights, reduction=hparams.dice_reduc).to(device)
     else: # Use both losses
         loss_criterion = CEDiceLoss(weight=dice_weights, ce_weight=0.5).to(device)
 
@@ -178,7 +193,9 @@ def main(hparams):
         train_accuracy = 0.0
         for i, data in enumerate(train_loader, 0):
             # get the inputs; data is a list of [inputs, labels]
-            X, y  = data['image'], data['segmentation'].argmax(1)
+            X, y  = data['image'], data['segmentation']
+            if hparams.loss == "ce" or hparams.loss == "focal":
+                y = y.argmax(1)
             X = X.to(device)
             y = y.to(device)
             
@@ -187,24 +204,30 @@ def main(hparams):
             # Forward Pass
             y_hat = model(X)
             loss = loss_criterion(y_hat, y)
+            
+            if hparams.l1_reg == True:
+                # Define L1 regularization strength (lambda)
+                l1_lambda = 0.0000008  # Adjust this value as needed
+
+                # Calculate L1 regularization term
+                l1_reg = torch.tensor(0.,device=device)
+                for param in model.parameters():
+                    l1_reg += torch.norm(param, p=1)
+                # Add L1 regularization term to the loss
+                loss += l1_lambda * l1_reg
+
 
             # backward pass
             loss.backward()
             optimizer.step()
 
+            if hparams.loss == "dice" or hparams.loss == "cedice":
+                y = y.argmax(1)
+
             # print statistics
             running_loss += loss.item()
             train_accuracy = calculate_accuracy(pred_tensor=y_hat, target_tensor=y)
             train_iou = mIoU_score(y_hat.cpu().argmax(1), y.cpu(), n_classes=LABELS_SIZE) * 100
-
-        # Save checkpoint every 10 epochs
-        if epoch % 10 == 0:
-            torch.save({
-                "epoch": epoch,
-                "model_state_dict": model.state_dict(),
-                "optimizer_state_dict": optimizer.state_dict(),
-                "loss": running_loss
-            }, "model.pt")
 
         # Print training progress after X amount of epochs
         if epoch % hparams.print_every == (hparams.print_every - 1):
@@ -242,13 +265,17 @@ def main(hparams):
             # Iterate over the whole validation dataset
             for val_data in val_loader:
                 # Extract target and inputs
-                val_X, val_y  = val_data['image'], val_data['segmentation'].argmax(1)
+                val_X, val_y  = val_data['image'], val_data['segmentation']
+                if hparams.loss == "ce" or hparams.loss == "focal":
+                    val_y = val_y.argmax(1)
                 val_X = val_X.to(device)
                 val_y = val_y.to(device)
                 with torch.no_grad():
                     # Generate prediction
                     val_pred = model(val_X)
                     loss = loss_criterion(val_pred, val_y)
+                    if hparams.loss == "dice" or hparams.loss == "cedice":
+                        val_y = val_y.argmax(1)
                     #Convert prediction to an image (numpy array)
                     # img_pred = val_pred[0]
                     # img_val_target = val_y[0].detach().cpu().numpy()
@@ -265,7 +292,7 @@ def main(hparams):
             val_iou /= len(val_loader)
             val_loss  = val_loss
             #Scheduler Step
-            scheduler.step(val_loss)
+            scheduler.step(val_iou)
 
             tb.add_scalar("Val_Loss", val_loss, epoch)
             tb.add_scalar("Val_Accuracy", val_acc, epoch)
@@ -273,6 +300,17 @@ def main(hparams):
             # tb.add_image("Pred Val Image", torch.transpose(colored_image, 0, 2), epoch)
             # tb.add_ima("Target Val Image", torch.transpose(val_image, 0, 2), epoch)
             print(f'[INFO-Validation][epoch: {epoch:03d}/iteration: {i :03d}] validation_loss: {val_loss:.6f}, validation_acc: {val_acc:.2f}%, validation_IOU: {val_iou:.2f}%')
+
+            # Save whenever the validation loss decreases
+            if ref_iou < val_iou:
+
+                ref_iou = val_iou
+                torch.save({
+                    "epoch": epoch,
+                    "model_state_dict": model.state_dict(),
+                    "optimizer_state_dict": optimizer.state_dict(),
+                    "loss": running_loss
+                }, "model.pt")
         if epoch == (hparams.epochs-1):
             tb.add_hparams(vars(hparams),
                            {"hparam/train_loss":running_loss, "hparam/train_accuracy":train_accuracy,
@@ -301,5 +339,9 @@ if __name__ == "__main__":
     parser.add_argument("-dp", "--dropout", type=float, default=0.5, help="Dropout strenght")
     parser.add_argument("-nd", "--network_depth", type=float, default=2, help="Depth of Unet style network")
     parser.add_argument("-os2D", "--oversample_2D", type=int, default=20, help="Oversample 2D Samples")
+    parser.add_argument("-dre", "--dice_reduc", type=str, default="mean", help="dice weights reduction method")
+    parser.add_argument("-g", "--gamma", type=int, default=4, help="gamma of dice weights")
+    parser.add_argument("-en", "--experiment_name", type=str, default="fullspec", help="name of the experiment")
+    parser.add_argument("-l1", "--l1_reg", type=bool, default=False, help="use l1 regularization?")
     args = parser.parse_args()
     main(args)
