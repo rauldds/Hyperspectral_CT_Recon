@@ -202,7 +202,8 @@ class MUSIC2DDataset(Dataset):
                 # with except of README, the rest of folders below don't have a correct correspondence
                 # between the number of slices and the number of segmentations
                 if (path == "README.md" or path == "Fruits" or
-                    path == "Sample_23012018" or path == "Sample_24012018"
+                    path == "Sample_23012018" 
+                    #or path == "Sample_24012018"
                     or (not self.include_nonthreat and path == "NonThreat")    
                 ):
                     continue
@@ -215,7 +216,7 @@ class MUSIC2DDataset(Dataset):
                 #Collect image list
                 with reconstruction_file as f:
                     data = np.array(f['data']['value'], order='F')
-                    if self.eliminate_empty == True:
+                    if self.eliminate_empty == True and (path in EMPTY_SCANS):
                         data = np.delete(data, EMPTY_SCANS[path], axis=1)
                     if self.partition == "train":
                         limits = [upper_lim, data.shape[1]]
@@ -232,7 +233,7 @@ class MUSIC2DDataset(Dataset):
                     #empty_elements = []
                     data = np.array(f['data']['value'], order='F',dtype=np.int16)
                     data = torch.from_numpy(data).float()
-                    if self.eliminate_empty == True:
+                    if self.eliminate_empty == True and (path in EMPTY_SCANS):
                         data = np.delete(data, EMPTY_SCANS[path], axis=0)
                     for i in range(limits[0], limits[1]):
                         #if (data[i,:,:].argmax(0)==0).all():
