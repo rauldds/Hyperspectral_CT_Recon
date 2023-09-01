@@ -338,7 +338,7 @@ if __name__ == "__main__":
     parser.add_argument("-ls", "--label_smoothing", type=float, default=0.0, help="how much label smoothing")
     parser.add_argument("-dp", "--dropout", type=float, default=0.5, help="Dropout strenght")
     parser.add_argument("-nd", "--network_depth", type=float, default=2, help="Depth of Unet style network")
-    parser.add_argument("-os2D", "--oversample_2D", type=int, default=20, help="Oversample 2D Samples")
+    parser.add_argument("-os2D", "--oversample_2D", type=int, default=1, help="Oversample 2D Samples")
     parser.add_argument("-dre", "--dice_reduc", type=str, default="mean", help="dice weights reduction method")
     parser.add_argument("-g", "--gamma", type=int, default=4, help="gamma of dice weights")
     parser.add_argument("-en", "--experiment_name", type=str, default="fullspec", help="name of the experiment")
