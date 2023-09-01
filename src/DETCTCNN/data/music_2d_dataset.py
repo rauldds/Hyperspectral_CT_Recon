@@ -2,6 +2,7 @@
 
 from abc import ABC, abstractmethod
 from email.mime import image
+import torch.nn.functional as F2
 import os
 import pickle
 import h5py
@@ -272,9 +273,11 @@ class JointTransform2D:
             torchvision.transforms.RandomAffine.
         long_mask: bool, if True, returns the mask as LongTensor in label-encoded format.
     """
+    
     def __init__(self, crop=(96, 96), p_flip=0.5, color_jitter_params=(0.1, 0.1, 0.1, 0.1),
-                 p_random_affine=0, long_mask=False, resize=None):
+                 p_random_affine=0, long_mask=False, resize=None, erosion=False):
         self.crop = crop
+        self.erosion = erosion
         self.p_flip = p_flip
         self.color_jitter_params = color_jitter_params
         self.resize = resize
@@ -311,6 +314,17 @@ class JointTransform2D:
                 # Do regular cropping
                 i, j, h, w = T.RandomCrop.get_params(image, self.crop)
                 image, mask = F.crop(image, i, j, h, w), F.crop(mask, i, j, h, w)
+            
+        if self.erosion:
+            #print(image.shape)
+            #print(image.unsqueeze(1).shape)
+            kernel = torch.ones(1, 1, 3, 3).to(image.device)
+            #print(kernel.shape)
+            kernel[0,0,1,1]=0
+            smoothed_img = F2.conv2d(image.unsqueeze(1), kernel, padding=1)
+            #print(smoothed_img.shape)
+            image = smoothed_img.squeeze(1)
+            #print(image.shape)
 
         if np.random.rand() < self.p_flip:
             image, mask = F.hflip(image), F.hflip(mask)
