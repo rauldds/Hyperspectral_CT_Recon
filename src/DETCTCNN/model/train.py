@@ -90,7 +90,8 @@ def main(hparams):
         full_dataset=hparams.full_dataset, 
         dim_red = hparams.dim_red,
         no_dim_red = hparams.no_dim_red,
-        band_selection = hparams.band_selection
+        band_selection = hparams.band_selection,
+        include_nonthreat=True
     )
 
     # Extract the mean, standard deviation, min, and max from the dataset
@@ -116,7 +117,8 @@ def main(hparams):
         full_dataset=hparams.full_dataset,
         dim_red = hparams.dim_red,
         no_dim_red = hparams.no_dim_red,
-        band_selection = hparams.band_selection
+        band_selection = hparams.band_selection,
+        include_nonthreat=True
     )
 
     # Extract the mean, standard deviation, min, and max from the validation dataset    
@@ -140,7 +142,7 @@ def main(hparams):
 
     # Call U-Net model
     print("Creating Model...")
-    model = get_model(input_channels=energy_levels, n_labels=hparams.n_labels, use_bn=True, basic_out_channel=64, depth=2, dropout=0.7)
+    model = get_model(input_channels=energy_levels, n_labels=hparams.n_labels, use_bn=True, basic_out_channel=64, depth=hparams.network_depth, dropout=hparams.dropout)
     model.to(device=device)
     
     # Define ADAM optimizer
@@ -200,7 +202,7 @@ def main(hparams):
                 "model_state_dict": model.state_dict(),
                 "optimizer_state_dict": optimizer.state_dict(),
                 "loss": running_loss
-            }, "model_1.pt")
+            }, "model_with_custom_dim_red.pt")
 
         # Print training progress after X amount of epochs
         if epoch % hparams.print_every == (hparams.print_every - 1):
@@ -281,18 +283,20 @@ if __name__ == "__main__":
     parser.add_argument("-ve", "--validate_every", type=int, default=20, help="Validate after each # of iterations")
     parser.add_argument("-pe", "--print_every", type=int, default=10, help="print info after each # of epochs")
     parser.add_argument("-e", "--epochs", type=int, default=1000, help="Number of maximum training epochs")
-    parser.add_argument("-bs", "--batch_size", type=int, default=1, help="Batch size")
+    parser.add_argument("-bs", "--batch_size", type=int, default=2, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
     parser.add_argument("-lr", "--learning_rate", type=float, default=0.0005, help="Learning rate")
     parser.add_argument("-loss", "--loss", type=str, default="ce", help="Loss function")
     parser.add_argument("-n", "--normalize_data", type=bool, default=False, help="Loss function")
-    parser.add_argument("-sp", "--spectrum", type=str, default="reducedSpectrum", help="Spectrum of MUSIC dataset")
-    parser.add_argument("-ps", "--patch_size", type=int, default=80, help="2D patch size, should be multiple of 128")
-    parser.add_argument("-dim_red", "--dim_red", choices=['none', 'pca', 'merge'], default="none", help="Use dimensionality reduction")
+    parser.add_argument("-sp", "--spectrum", type=str, default="fullSpectrum", help="Spectrum of MUSIC dataset")
+    parser.add_argument("-ps", "--patch_size", type=int, default=40, help="2D patch size, should be multiple of 128")
+    parser.add_argument("-dim_red", "--dim_red", choices=['none', 'pca', 'merge'], default="merge", help="Use dimensionality reduction")
     parser.add_argument("-no_dim_red", "--no_dim_red", type=int, default=10, help="Target no. dimensions for dim reduction")
     parser.add_argument("-sample_strategy", "--sample_strategy", choices=['grid', 'label'], default="label", help="Type of sampler to use for patches")
     parser.add_argument("-fd", "--full_dataset", type=bool, default=True, help="Use 2D and 3D datasets or not")
-    parser.add_argument("-bsel", "--band_selection", type=str, default=None, help="path to band list")
+    parser.add_argument("-bsel", "--band_selection", type=str, default="band_selection/band_sel_bsnet_30_bands.pkl", help="path to band list")
     parser.add_argument("-ls", "--label_smoothing", type=float, default=0.0, help="how much label smoothing")
+    parser.add_argument("-dp", "--dropout", type=float, default=0.5, help="Dropout strenght")
+    parser.add_argument("-nd", "--network_depth", type=float, default=2, help="Depth of Unet style network")
     args = parser.parse_args()
     main(args)

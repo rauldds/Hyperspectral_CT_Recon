@@ -44,7 +44,7 @@ class MUSIC2DDataset(Dataset):
     def __init__(self, *args, path2d=None, path3d=None, 
                 transform=None, full_dataset=False, partition="train", 
                 spectrum="fullSpectrum", dim_red=None, no_dim_red=10, eliminate_empty=True, band_selection = None,
-                include_nonthreat=False, **kwargs):
+                include_nonthreat=True, **kwargs):
 
         super().__init__(*args, path2d=path2d, path3d=path3d,
                          transform=transform, partition=partition, 
