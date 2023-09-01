@@ -91,7 +91,8 @@ def main(hparams):
         dim_red = hparams.dim_red,
         no_dim_red = hparams.no_dim_red,
         band_selection = hparams.band_selection,
-        include_nonthreat=True
+        include_nonthreat=True,
+        oversample_2D=hparams.oversample_2D
     )
 
     # Extract the mean, standard deviation, min, and max from the dataset
@@ -118,7 +119,8 @@ def main(hparams):
         dim_red = hparams.dim_red,
         no_dim_red = hparams.no_dim_red,
         band_selection = hparams.band_selection,
-        include_nonthreat=True
+        include_nonthreat=True,
+        oversample_2D=1
     )
 
     # Extract the mean, standard deviation, min, and max from the validation dataset    
@@ -142,7 +144,7 @@ def main(hparams):
 
     # Call U-Net model
     print("Creating Model...")
-    model = get_model(input_channels=energy_levels, n_labels=hparams.n_labels, use_bn=True, basic_out_channel=64, depth=hparams.network_depth, dropout=hparams.dropout)
+    model = get_model(input_channels=energy_levels, n_labels=hparams.n_labels, use_bn=True, basic_out_channel=32, depth=hparams.network_depth, dropout=hparams.dropout)
     model.to(device=device)
     
     # Define ADAM optimizer
@@ -202,7 +204,7 @@ def main(hparams):
                 "model_state_dict": model.state_dict(),
                 "optimizer_state_dict": optimizer.state_dict(),
                 "loss": running_loss
-            }, "model_with_custom_dim_red.pt")
+            }, "model.pt")
 
         # Print training progress after X amount of epochs
         if epoch % hparams.print_every == (hparams.print_every - 1):
@@ -298,5 +300,6 @@ if __name__ == "__main__":
     parser.add_argument("-ls", "--label_smoothing", type=float, default=0.0, help="how much label smoothing")
     parser.add_argument("-dp", "--dropout", type=float, default=0.5, help="Dropout strenght")
     parser.add_argument("-nd", "--network_depth", type=float, default=2, help="Depth of Unet style network")
+    parser.add_argument("-os2D", "--oversample_2D", type=int, default=20, help="Oversample 2D Samples")
     args = parser.parse_args()
     main(args)
