@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 from matplotlib.widgets import Slider
 import open3d as o3d
 from src.DETCTCNN.data.music_2d_labels import MUSIC_2D_LABELS, MUSIC_2D_PALETTE
-from  src.DETCTCNN.data.music_2d_dataset import MUSIC2DDataset
+from  src.DETCTCNN.data.music_2d_dataset import MUSIC2DDataset, JointTransform2D
 from src.DETCTCNN.model.utils import calculate_min_max, calculate_data_statistics, standardize, normalize
 LABELS_SIZE = len(MUSIC_2D_LABELS)
 INPUT_CHANNELS ={
@@ -55,6 +55,8 @@ def main(args):
     if args.dim_red != "none" or args.band_selection is not None:
         energy_levels = args.no_dim_red
 
+    transform = JointTransform2D(crop=None, p_flip=0.0, color_jitter_params=None, long_mask=True,erosion=True)
+
     train_dataset = MUSIC2DDataset(
         path2d=path2d, path3d=path3d, 
         spectrum=args.spectrum, 
@@ -70,7 +72,7 @@ def main(args):
         spectrum=args.spectrum, 
         partition="test3D",
         full_dataset=True, 
-        transform=None,
+        transform=transform,
         dim_red=args.dim_red,
         no_dim_red=args.no_dim_red,
         band_selection=args.band_selection,
@@ -83,12 +85,11 @@ def main(args):
         min, max  = calculate_min_max(train_dataset.images)
         dataset.images = list(map(lambda x: normalize(x,min,max) , dataset.images))
 
-    #model = get_model(input_channels=INPUT_CHANNELS[args.spectrum], n_labels=args.n_labels, 
-    #                  use_bn=True, basic_out_channel=16, depth=2, dropout=0.5)
-    #checkpoint = torch.load("model.pt", 
-    model = get_model(input_channels=energy_levels, n_labels=args.n_labels, 
-                      use_bn=True, basic_out_channel=16, depth=1, dropout=0.5)
-    checkpoint = torch.load("./model_bsnet30merge.pt", 
+    model = get_model(input_channels=energy_levels, n_labels=args.n_labels, use_bn=True, basic_out_channel=64, depth=2, dropout=0.5)
+    checkpoint = torch.load("model.pt", 
+    #model = get_model(input_channels=energy_levels, n_labels=args.n_labels, 
+    #                  use_bn=True, basic_out_channel=16, depth=1, dropout=0.5)
+    #checkpoint = torch.load("./model_bsnet30merge.pt", 
                             map_location=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     
     model.load_state_dict(checkpoint['model_state_dict'])
@@ -142,7 +143,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("-dr", "--data_root", type=str, default="/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon", help="Data root directory")
+    parser.add_argument("-dr", "--data_root", type=str, default="/media/rauldds/TOSHIBA EXT/MLMI", help="Data root directory")
     parser.add_argument("-bs", "--batch_size", type=int, default=2, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
     parser.add_argument("-n", "--normalize_data", type=bool, default=False, help="decide if you want to normalize the data")
