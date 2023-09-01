@@ -93,7 +93,9 @@ def main(hparams):
         full_dataset=hparams.full_dataset, 
         dim_red = hparams.dim_red,
         no_dim_red = hparams.no_dim_red,
-        band_selection = hparams.band_selection
+        band_selection = hparams.band_selection,
+        include_nonthreat=True,
+        oversample_2D=hparams.oversample_2D
     )
 
     # Extract the mean, standard deviation, min, and max from the dataset
@@ -107,61 +109,6 @@ def main(hparams):
     #########       START: Configs for patch training     ##########
     ################################################################
 
-    # List to store samples from dataset classes
-    #train_list = []
-    #val_list = []
-
-    # Define how many patches to do per volume based on the patch size
-    patches_for_full_volume = int(128/hparams.patch_size)*2
-
-
-    
-    # Extract elements from the train dataset class and convert them to torch io subjects 
-    # and store them in a lis
-    # for data in (train_dataset):
-          #IF THERE SCAN IS EMPTY IGNORE IT
-    #      if (torch.argmax(data["segmentation"],0)==0).all():
-    #        continue
-    #     subject = tio.Subject(
-    #         image=tio.ScalarImage(tensor=data["image"].unsqueeze(0)),
-    #         segmentation=tio.LabelMap(
-    #             tensor=torch.argmax(data["segmentation"],0).unsqueeze(0).repeat(1,energy_levels,1,1)
-    #             ),
-    #     )
-    #     train_list.append(subject)
-    
-    #transformed_subjects = [pad_transform(subject) for subject in train_list]
-    
-    # # Store all subjects in a torch io subjects dataset
-    # TrainSubjectDataset = tio.data.SubjectsDataset(transformed_subjects)
-    # TrainSubjectDataset = tio.data.SubjectsDataset(train_list)
-
-    # # Define the type of sampler that'll be used to generate patches. GridSampler goes through the volume
-    # # in an orderly manner. Other sampler alternatives sample randomly or based on a certain label.
-    # # https://torchio.readthedocs.io/patches/patch_training.html
-    # train_sampler = tio.GridSampler(patch_size=(energy_levels,
-    #                                             hparams.patch_size,
-    #                                             hparams.patch_size),
-    #                                 subject=subject)
-    # if hparams.sample_strategy == "label":
-    #     label_probabilities : Dict[int, float] = {i: (0 if i == 0 else 1) for i in range(len(MUSIC_2D_LABELS))}
-    #     train_sampler = tio.data.LabelSampler(
-    #         patch_size=(energy_levels,
-    #                     hparams.patch_size,
-    #                     hparams.patch_size),
-    #         label_probabilities=label_probabilities,
-    #     )
-    # # Queue that controls the loaded patches, provides them for each batch iteration
-    # train_patches_queue = tio.Queue(
-    #                                 TrainSubjectDataset,
-    #                                 max_length=150,
-    #                                 samples_per_volume=patches_for_full_volume,
-    #                                 sampler=train_sampler,
-    #                                 num_workers=1,
-    # )
-    
-    # Define the train dataloader
-    # train_loader = DataLoader(train_patches_queue, batch_size=hparams.batch_size, shuffle=True)
     train_loader = DataLoader(dataset=train_dataset, batch_size=hparams.batch_size,shuffle=True)
 
     print("Loading Validation Data (And applying dim reduction)...")
@@ -174,40 +121,17 @@ def main(hparams):
         full_dataset=hparams.full_dataset,
         dim_red = hparams.dim_red,
         no_dim_red = hparams.no_dim_red,
-        band_selection = hparams.band_selection
+        band_selection = hparams.band_selection,
+        include_nonthreat=True,
+        oversample_2D=1
     )
 
     # Extract the mean, standard deviation, min, and max from the validation dataset    
     if hparams.normalize_data:
         val_dataset.images = list(map(lambda x: standardize(x,mean,std) , val_dataset.images))
         val_dataset.images = list(map(lambda x: normalize(x,min,max) , val_dataset.images))
-    
-    # Extract elements from the validation dataset class and convert them to torch io subjects 
-    # and store them in a list
-    # for data in (val_dataset):
-    #     subject = tio.Subject(
-    #         image=tio.ScalarImage(tensor=data["image"].unsqueeze(0)),
-    #         segmentation=tio.LabelMap(
-    #             tensor=torch.argmax(data["segmentation"],0).unsqueeze(0).repeat(1,energy_levels,1,1)
-    #             ),
-    #     )
-    #     val_list.append(subject)
-    # ValSubjectDataset = tio.data.SubjectsDataset(val_list)
-    # val_sampler = tio.GridSampler(patch_size=(energy_levels,
-    #                                             hparams.patch_size,
-    #                                             hparams.patch_size),
-    #                                 subject=subject)
-    # val_patches_queue = tio.Queue(
-    #                                 ValSubjectDataset,
-    #                                 max_length=150,
-    #                                 samples_per_volume=patches_for_full_volume,
-    #                                 sampler=val_sampler,
-    #                                 num_workers=1,
-    # )
 
-    # Define the validation dataloader class with the torch io class
-    # val_loader = DataLoader(val_patches_queue)
-    val_loader = DataLoader(dataset=val_dataset, batch_size=hparams.batch_size,shuffle=True)
+    val_loader = DataLoader(dataset=val_dataset, batch_size=16,shuffle=True)
 
     ################################################################
     #########       End: Configs for patch training     ##########
@@ -235,11 +159,11 @@ def main(hparams):
 
     # Call U-Net model
     print("Creating Model...")
-    model = get_model(input_channels=energy_levels, n_labels=hparams.n_labels, use_bn=True, basic_out_channel=64, depth=2, dropout=0.5)
+    model = get_model(input_channels=energy_levels, n_labels=hparams.n_labels, use_bn=True, basic_out_channel=32, depth=hparams.network_depth, dropout=hparams.dropout)
     model.to(device=device)
     
     # Define ADAM optimizer
-    optimizer = torch.optim.Adam(model.parameters(), betas=([0.9, 0.999]), lr = hparams.learning_rate, weight_decay = 0.00001)
+    optimizer = torch.optim.Adam(model.parameters(), betas=([0.9, 0.999]), lr = hparams.learning_rate)
 
     # Define Learning Rate Scheduler 
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=50, factor=0.5)
@@ -263,7 +187,7 @@ def main(hparams):
 
     print("Training Started")
     for epoch in range(hparams.epochs):  # loop over the dataset multiple times
-
+        model.train()
         # Initializing loss and accuracy
         running_loss = 0.0
         train_accuracy = 0.0
@@ -396,26 +320,28 @@ def main(hparams):
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("-dr", "--data_root", type=str, default="/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon", help="Data root directory")
-    parser.add_argument("-ve", "--validate_every", type=int, default=10, help="Validate after each # of iterations")
+    parser.add_argument("-ve", "--validate_every", type=int, default=20, help="Validate after each # of iterations")
     parser.add_argument("-pe", "--print_every", type=int, default=10, help="print info after each # of epochs")
-    parser.add_argument("-e", "--epochs", type=int, default=500, help="Number of maximum training epochs")
-    parser.add_argument("-bs", "--batch_size", type=int, default=1, help="Batch size")
+    parser.add_argument("-e", "--epochs", type=int, default=1000, help="Number of maximum training epochs")
+    parser.add_argument("-bs", "--batch_size", type=int, default=2, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
-    parser.add_argument("-lr", "--learning_rate", type=float, default=0.0007, help="Learning rate")
+    parser.add_argument("-lr", "--learning_rate", type=float, default=0.0005, help="Learning rate")
     parser.add_argument("-loss", "--loss", type=str, default="ce", help="Loss function")
-    parser.add_argument("-n", "--normalize_data", type=bool, default=True, help="Loss function")
-    parser.add_argument("-sp", "--spectrum", type=str, default="reducedSpectrum", help="Spectrum of MUSIC dataset")
+    parser.add_argument("-n", "--normalize_data", type=bool, default=False, help="Loss function")
+    parser.add_argument("-sp", "--spectrum", type=str, default="fullSpectrum", help="Spectrum of MUSIC dataset")
     parser.add_argument("-ps", "--patch_size", type=int, default=40, help="2D patch size, should be multiple of 128")
-    parser.add_argument("-dim_red", "--dim_red", choices=['none', 'pca', 'merge'], default="none", help="Use dimensionality reduction")
+    parser.add_argument("-dim_red", "--dim_red", choices=['none', 'pca', 'merge'], default="merge", help="Use dimensionality reduction")
     parser.add_argument("-no_dim_red", "--no_dim_red", type=int, default=10, help="Target no. dimensions for dim reduction")
     parser.add_argument("-sample_strategy", "--sample_strategy", choices=['grid', 'label'], default="label", help="Type of sampler to use for patches")
     parser.add_argument("-fd", "--full_dataset", type=bool, default=True, help="Use 2D and 3D datasets or not")
+    parser.add_argument("-bsel", "--band_selection", type=str, default="band_selection/band_sel_bsnet_30_bands.pkl", help="path to band list")
+    parser.add_argument("-ls", "--label_smoothing", type=float, default=0.0, help="how much label smoothing")
+    parser.add_argument("-dp", "--dropout", type=float, default=0.5, help="Dropout strenght")
+    parser.add_argument("-nd", "--network_depth", type=float, default=2, help="Depth of Unet style network")
+    parser.add_argument("-os2D", "--oversample_2D", type=int, default=1, help="Oversample 2D Samples")
     parser.add_argument("-dre", "--dice_reduc", type=str, default="mean", help="dice weights reduction method")
     parser.add_argument("-g", "--gamma", type=int, default=4, help="gamma of dice weights")
     parser.add_argument("-en", "--experiment_name", type=str, default="fullspec", help="name of the experiment")
     parser.add_argument("-l1", "--l1_reg", type=bool, default=False, help="use l1 regularization?")
-    parser.add_argument("-bsel", "--band_selection", type=str, default=None, help="path to band list")
-    parser.add_argument("-ls", "--label_smoothing", type=float, default=0.0, help="how much label smoothing")
-
     args = parser.parse_args()
     main(args)
