@@ -46,7 +46,7 @@ def plot_class_colors_and_accuracies(labels_dict, palette, accuracies, highest_r
         ax.text(square_size + 0.2, idx + square_size / 2, f"{cls}: {acc:.2f}%", va='center', fontsize=10)
 
     # Display the highest recorded accuracy and params
-    ax.text(square_size + 0.2, len(labels_dict) + 1, f"Highest Recorded Golbal Validation Acc: {highest_recorded_acc:.2f}%", fontsize=12)
+    ax.text(square_size + 0.2, len(labels_dict) + 1, f"Highest Recorded Golbal Validation Acc: {100*highest_recorded_acc:.2f}%", fontsize=12)
     ax.text(square_size + 0.2, len(labels_dict) + 2, f"Params: {params}", fontsize=12, wrap=True)
 
     ax.set_xlim(0, 10)
