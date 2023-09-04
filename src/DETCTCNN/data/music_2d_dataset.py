@@ -44,7 +44,7 @@ class MUSIC2DDataset(Dataset):
     def __init__(self, *args, path2d=None, path3d=None, 
                 transform=None, full_dataset=False, partition="train", 
                 spectrum="fullSpectrum", dim_red=None, no_dim_red=10, eliminate_empty=True, band_selection = None,
-                include_nonthreat=True, oversample_2D=1, **kwargs):
+                include_nonthreat=True, oversample_2D=1, split_file="None", **kwargs):
 
         super().__init__(*args, path2d=path2d, path3d=path3d,
                          transform=transform, partition=partition, 
@@ -123,7 +123,9 @@ class MUSIC2DDataset(Dataset):
 
     def _load_data(self):
         for path in os.listdir(self.path2d):
-            if self.partition =="train" and (path == "sample20" or
+            if self.partition == "all" and path == "README.md":
+                continue
+            elif self.partition =="train" and (path == "sample20" or
                                              path == "sample19" or
                                              path == "sample1" or
                                              path == "sample2" or
@@ -193,7 +195,7 @@ class MUSIC2DDataset(Dataset):
                         # HAD TO DO THIS BECAUSE NUMBER OF SEGMENTATION SLICES DOESN'T COINCIDE WITH THE NUMBER OF SCANS
                         self.segmentations.append(torch.zeros((100,100)))
 
-        if self.full_dataset and (self.partition=="train" or self.partition=="valid"):
+        if self.full_dataset and (self.partition=="train" or self.partition=="valid" or self.partition=="all"):
             upper_lim = 10
             limits = [0,upper_lim]
             # dict_empty_elements = {}
@@ -220,6 +222,8 @@ class MUSIC2DDataset(Dataset):
                         data = np.delete(data, EMPTY_SCANS[path], axis=1)
                     if self.partition == "train":
                         limits = [upper_lim, data.shape[1]]
+                    if self.partition == "all":
+                        limits = [0, data.shape[1]]
                     # TODO: Might be a more optimal way to do this hehe
                     for i in range(limits[0], limits[1]):
                         scan = data[:,i, :,:]
