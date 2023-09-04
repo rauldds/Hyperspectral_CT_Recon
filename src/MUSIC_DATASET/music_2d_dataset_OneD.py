@@ -7,6 +7,7 @@ import h5py
 import numpy as np
 from src.MUSIC_DATASET.utils import MUSIC_2D_LABELS
 from src.MUSIC_DATASET.utils import EMPTY_SCANS
+from src.OneD.config import hparams_LogReg
 import torch
 
 
@@ -137,7 +138,7 @@ class MUSIC1DDataset(Dataset):
 
         # Remove all zeros for faster training
         nonzero = torch.nonzero(self.segmentations > 0).squeeze()
-        no_zero_samples = nonzero.shape[0] // 16
+        no_zero_samples = nonzero.shape[0] // hparams_LogReg["num_black_division_factor"]
         zero_idxs = torch.nonzero(self.segmentations == 0).squeeze()
         # print(f"zero indices shape {zero_idxs}")
         self.images = self.images[nonzero]
