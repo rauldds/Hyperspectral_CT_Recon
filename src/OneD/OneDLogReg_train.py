@@ -1,13 +1,15 @@
+import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 import torch.optim.lr_scheduler as lr_scheduler
-from src.OneD.OneDLogReg import OneDLogReg
+from src.OneD.OneDLogReg import OneDLogReg, OneDLogRegSkip
 from src.MUSIC_DATASET import MUSIC1DDataset
 from src.MUSIC_DATASET.utils import MUSIC_2D_LABELS
 from src.MUSIC_DATASET.utils import MUSIC_2D_PALETTE
 from src.OneD.config import hparams_LogReg
 from utils import image_from_segmentation
+from utils import plot_class_colors_and_accuracies
 
 LABELS_SIZE = len(MUSIC_2D_LABELS)
 log_interval = hparams_LogReg['log_interval']
@@ -51,6 +53,10 @@ patience = hparams_LogReg['early_stopping_patience']
 no_improvement_epochs = 0
 early_stopping_threshold = 1e-4
 
+# Initialize counters for per-class accuracy
+class_correct = torch.zeros(len(MUSIC_2D_LABELS)).to(device)
+class_total = torch.zeros(len(MUSIC_2D_LABELS)).to(device)
+
 print(f'[INFO] Training Started')
 print(f'[WARNING] Not saving model parameters until epoch {initial_epochs_buffer}\n')
 for epoch in range(epochs):
@@ -58,6 +64,13 @@ for epoch in range(epochs):
 
     running_loss = 0.0
     running_accuracy = 0.0
+
+    total_correct_train = 0
+    total_samples_train = 0
+
+    total_correct_val = 0
+    total_samples_val = 0
+
     for batch_idx, batch in enumerate(train_loader):
         images = batch['image'].to(device)
         # print(f"images shape: {images.shape}")
@@ -69,8 +82,20 @@ for epoch in range(epochs):
         output = output.squeeze(1)
 
         predicted_classes = torch.argmax(output, dim=1)
-        correct_predictions = (predicted_classes == segmentations).sum().item()
-        running_accuracy += correct_predictions / images.size(0)
+        correct_train = (predicted_classes == segmentations).sum().item()
+
+        _, preds = torch.max(output, 1)
+        correct_tensor = preds.eq(segmentations.data.view_as(preds))
+        correct = correct_tensor.squeeze()
+        for i, label in enumerate(segmentations):
+            class_correct[label] += correct[i].item()
+            class_total[label] += 1
+
+        total_correct_train += correct_train
+        total_samples_train += images.size(0)
+
+
+        running_accuracy += correct_train / images.size(0)
 
         # print(f"output shape {output.shape}")
         loss = loss_criterion(output, segmentations)
@@ -80,14 +105,13 @@ for epoch in range(epochs):
 
         if (batch_idx + 1) % log_interval == 0:
             avg_loss = running_loss / log_interval
-            avg_accuracy = running_accuracy / log_interval
+            avg_train_accuracy = total_correct_train / (hparams_LogReg['batch_size'] * log_interval)
             tb.add_scalar("Training Loss", avg_loss, epoch)
-            tb.add_scalar("Training Accuracy", avg_accuracy, epoch)
-            print(f"[Epoch {epoch + 1}/{epochs}, Batch {batch_idx + 1}/{num_batches}] Training loss: {avg_loss:.3f}")
-            print(f"[Epoch {epoch + 1}/{epochs}, Batch {batch_idx + 1}/{num_batches}] Training Accuracy: {avg_accuracy:.3f}")
+            tb.add_scalar("Training Accuracy", avg_train_accuracy, epoch)
+            print(f"[Epoch {epoch + 1}/{epochs}, Batch {batch_idx + 1}/{num_batches}] Training loss: {avg_loss:.3f}, "
+                  f"Training Accuracy: {avg_train_accuracy:.3f}")
             running_loss = 0.0  # Reset running loss after logging
             running_accuracy = 0.0
-
 
     running_val_loss = 0.0
     running_val_accuracy = 0.0
@@ -103,21 +127,30 @@ for epoch in range(epochs):
             output = output.squeeze(1)
 
             predicted_classes = torch.argmax(output, dim=1)
-            correct_predictions = (predicted_classes == segmentations).sum().item()
-            running_val_accuracy += correct_predictions / images.size(0)
+            correct_val = (predicted_classes == segmentations).sum().item()
+
+            _, preds = torch.max(output, 1)
+            correct_tensor = preds.eq(segmentations.data.view_as(preds))
+            correct = correct_tensor.squeeze()
+            for i, label in enumerate(segmentations):
+                class_correct[label] += correct[i].item()
+                class_total[label] += 1
+
+            total_correct_val += correct_val
+            total_samples_val += images.size(0)
+
+            running_val_accuracy += correct_val / images.size(0)
 
             val_loss = loss_criterion(output, segmentations)
-            # image_from_segmentation(output, LABELS_SIZE, MUSIC_2D_PALETTE, device=device, mode="val")
             running_val_loss += val_loss.item()
 
     average_val_loss = running_val_loss / len(val_loader)
-    avg_val_accuracy = running_val_accuracy / len(val_loader)
+    avg_val_accuracy = total_correct_val / total_samples_val
     # Update the learning rate based on validation loss
     scheduler.step(average_val_loss)
     tb.add_scalar("Validation Loss", average_val_loss, epoch)
     tb.add_scalar("Validation Accuracy", avg_val_accuracy, epoch)
-    print(f"Epoch [{epoch + 1}/{epochs}], Validation Loss: {average_val_loss:.4f}")
-    print(f"Epoch [{epoch + 1}/{epochs}], Validation Accuracy: {avg_val_accuracy:.3f}")
+    print(f"Epoch [{epoch + 1}/{epochs}], Validation Loss: {average_val_loss:.4f}, Validation Accuracy: {avg_val_accuracy:.3f}")
 
     # Check for model improvement
     if epoch > initial_epochs_buffer and best_val_loss - average_val_loss > early_stopping_threshold:
@@ -136,3 +169,18 @@ for epoch in range(epochs):
     if no_improvement_epochs >= patience:
         print(f"Early stopping due to no improvement @ epoch#: {epoch + 1}")
         break
+
+print("\nAccuracy per class:")
+for label, idx in MUSIC_2D_LABELS.items():
+    print(f'Accuracy of {label} : {100 * class_correct[idx].item() / class_total[idx].item():.2f}%')
+
+# Calculate accuracies for each class after the loop completes
+class_accuracies_dict = {label: 100 * class_correct[idx].item() / class_total[idx].item() for label, idx in MUSIC_2D_LABELS.items()}
+
+# save png Image with hparams, accuracy per class, and best accuracy of the experiment
+plot_class_colors_and_accuracies(MUSIC_2D_LABELS,
+                                 MUSIC_2D_PALETTE,
+                                 class_accuracies_dict,
+                                 best_val_loss,
+                                 hparams_LogReg)
+
