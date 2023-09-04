@@ -81,3 +81,4 @@ src/pytorch-UNet/checkpoint/*
 src/pytorch-UNet/output/*
 Experiments
 src/DETCTCNN/model/multiple_trainings.py
+src/OneD/experiments_info
