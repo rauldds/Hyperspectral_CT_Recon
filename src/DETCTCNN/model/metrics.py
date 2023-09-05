@@ -19,4 +19,4 @@ def mIoU_score(y_hat, y, smooth=1e-10, n_classes=16):
                 iou = (intersect + smooth) / (union +smooth)
                 iou_per_class.append(iou)
         iou_per_class = torch.FloatTensor(iou_per_class)
-        return torch.nanmean(iou_per_class) 
+        return [iou_per_class ,torch.nanmean(iou_per_class)]

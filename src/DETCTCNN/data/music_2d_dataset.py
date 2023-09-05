@@ -45,7 +45,7 @@ class MUSIC2DDataset(Dataset):
     def __init__(self, *args, path2d=None, path3d=None, 
                 transform=None, full_dataset=False, partition="train", 
                 spectrum="fullSpectrum", dim_red=None, no_dim_red=10, eliminate_empty=True, band_selection = None,
-                include_nonthreat=True, oversample_2D=1, **kwargs):
+                include_nonthreat=True, oversample_2D=1, split_file=False, **kwargs):
 
         super().__init__(*args, path2d=path2d, path3d=path3d,
                          transform=transform, partition=partition, 
@@ -59,6 +59,12 @@ class MUSIC2DDataset(Dataset):
         self.band_selection = None
         self.include_nonthreat = include_nonthreat
         self.oversample_2D = oversample_2D
+        self.split_file = split_file
+        split_location = "./splits/four_one_split.pkl"
+        self.split_data = None
+        if split_file:
+            with open(split_location, 'rb') as handle:
+                self.split_data = pickle.load(handle)
         if band_selection:
             bands = pickle.load(open(band_selection, "rb"))
             self.band_selection = bands
@@ -124,7 +130,11 @@ class MUSIC2DDataset(Dataset):
 
     def _load_data(self):
         for path in os.listdir(self.path2d):
-            if self.partition =="train" and (path == "sample20" or
+            if (self.partition == "all" or self.split_file) and path == "README.md":
+                continue
+            elif (self.partition == "all" or self.split_file):
+                pass
+            elif self.partition =="train" and (path == "sample20" or
                                              path == "sample19" or
                                              path == "sample1" or
                                              path == "sample2" or
@@ -194,7 +204,7 @@ class MUSIC2DDataset(Dataset):
                         # HAD TO DO THIS BECAUSE NUMBER OF SEGMENTATION SLICES DOESN'T COINCIDE WITH THE NUMBER OF SCANS
                         self.segmentations.append(torch.zeros((100,100)))
 
-        if self.full_dataset and (self.partition=="train" or self.partition=="valid"):
+        if self.full_dataset and (self.partition=="train" or self.partition=="valid" or self.partition=="all"):
             upper_lim = 10
             limits = [0,upper_lim]
             # dict_empty_elements = {}
@@ -221,6 +231,9 @@ class MUSIC2DDataset(Dataset):
                         data = np.delete(data, EMPTY_SCANS[path], axis=1)
                     if self.partition == "train":
                         limits = [upper_lim, data.shape[1]]
+                    # Get all data for custom split file
+                    if self.partition == "all" or self.split_file:
+                        limits = [0, data.shape[1]]
                     # TODO: Might be a more optimal way to do this hehe
                     for i in range(limits[0], limits[1]):
                         scan = data[:,i, :,:]
@@ -241,10 +254,15 @@ class MUSIC2DDataset(Dataset):
                             #empty_elements.append(i)
                         self.segmentations.append(data[i, :, :])
                     #dict_empty_elements[path] = empty_elements
-            
-            #with open("empty_scans.py", "w") as fp:
-            #    json.dump(dict_empty_elements, fp)  # encode dict into JSON
-            #print("Done writing dict into .txt file")
+        # Take images from right split
+        if self.split_file and self.split_data != None:
+            if self.partition == "train" or self.partition == "valid":
+                idx = self.split_data[self.partition]
+                self.images = [self.images[i] for i in idx]
+                self.segmentations = [self.segmentations[i] for i in idx]
+
+
+                
 
 class MusicTransform:
     def __init__(self, resize=128):
