@@ -337,11 +337,19 @@ def main(hparams):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
+<<<<<<< HEAD
     parser.add_argument("-dr", "--data_root", type=str, default="/media/rauldds/TOSHIBA EXT/MLMI", help="Data root directory")
     parser.add_argument("-ve", "--validate_every", type=int, default=1, help="Validate after each # of iterations")
     parser.add_argument("-pe", "--print_every", type=int, default=1, help="print info after each # of epochs")
     parser.add_argument("-e", "--epochs", type=int, default=300, help="Number of maximum training epochs")
     parser.add_argument("-bs", "--batch_size", type=int, default=1, help="Batch size")
+=======
+    parser.add_argument("-dr", "--data_root", type=str, default="/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon", help="Data root directory")
+    parser.add_argument("-ve", "--validate_every", type=int, default=20, help="Validate after each # of iterations")
+    parser.add_argument("-pe", "--print_every", type=int, default=10, help="print info after each # of epochs")
+    parser.add_argument("-e", "--epochs", type=int, default=1000, help="Number of maximum training epochs")
+    parser.add_argument("-bs", "--batch_size", type=int, default=4, help="Batch size")
+>>>>>>> 427712af193cc23b9b1d4ba05f786aa3d96923c8
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
     parser.add_argument("-lr", "--learning_rate", type=float, default=0.0003, help="Learning rate")
     parser.add_argument("-loss", "--loss", type=str, default="ce", help="Loss function")
