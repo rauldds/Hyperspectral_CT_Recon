@@ -2,6 +2,7 @@ from argparse import ArgumentParser
 
 from matplotlib import pyplot as plt
 from OneDLogReg import OneDLogReg
+import k3d
 import torch
 from src.MUSIC_DATASET import MUSIC2DDataset
 # from src.DETCTCNN.data.music_2d_labels import MUSIC_2D_LABELS, MUSIC_2D_PALETTE
@@ -78,6 +79,26 @@ def main(args):
         o3d.io.write_point_cloud("test.ply",pcl)
         o3d.visualization.draw_geometries_with_animation_callback([pcl],rotate_view,
                                     window_name="Material Segmentation Prediction 3D Visualization")
+
+        color_map = []
+        for count, color in enumerate(MUSIC_2D_PALETTE):
+            color_i = list(map(lambda x: x/255.0, color))
+            color_i.insert(0,count/15.0)
+            color_map.append(color_i)
+        print(color_map)
+        
+        volume_k3d = k3d.points(positions=points,
+                          point_size=1,
+                          shader='flat',
+                          opacity=0.5,
+                          color_map=color_map,
+                          attribute=(np.array(classes)/15.0).tolist(),
+                          name="3D VOLUME PLOT")
+        plot = k3d.plot()
+        plot += volume_k3d
+        with open('test.html', 'w') as f:
+            f.write(plot.get_snapshot())
+
 
 if __name__ == "__main__":
     parser = ArgumentParser()
