@@ -164,7 +164,7 @@ def main(hparams):
 
     # Call U-Net model
     print("Creating Model...")
-    model = get_model(input_channels=energy_levels, n_labels=hparams.n_labels, use_bn=False, basic_out_channel=32, depth=hparams.network_depth, dropout=hparams.dropout)
+    model = get_model(input_channels=energy_levels, n_labels=hparams.n_labels, use_bn=True, basic_out_channel=32, depth=hparams.network_depth, dropout=hparams.dropout)
     model.to(device=device)
     
     # Define ADAM optimizer
@@ -311,10 +311,10 @@ def main(hparams):
             #Scheduler Step
             scheduler.step(val_iou)
 
-            tb.add_scalar("Val_Loss", val_loss, epoch)
-            tb.add_scalar("Val_Accuracy", val_acc, epoch)
-            tb.add_scalar("Val_IOU", val_iou, epoch)
-            tb.add_image("Pred Val Image", torch.transpose(colored_image, 0, 2), epoch)
+            # tb.add_scalar("Val_Loss", val_loss, epoch)
+            # tb.add_scalar("Val_Accuracy", val_acc, epoch)
+            # tb.add_scalar("Val_IOU", val_iou, epoch)
+            # tb.add_image("Pred Val Image", torch.transpose(colored_image, 0, 2), epoch)
             tb.add_image("Target Val Image", torch.transpose(val_image, 0, 2), epoch)
             print(f'[INFO-Validation][epoch: {epoch:03d}/iteration: {i :03d}] validation_loss: {val_loss:.6f}, validation_acc: {val_acc:.2f}%, validation_IOU: {val_iou:.2f}%')
             print(f'[INFO-Validation][epoch: {epoch:03d}/iteration: {i :03d}] validation IOU per class in batch: {["{0:0.2f}".format(j) for j in val_iou_per_class]}')
@@ -328,7 +328,7 @@ def main(hparams):
                     "model_state_dict": model.state_dict(),
                     "optimizer_state_dict": optimizer.state_dict(),
                     "loss": running_loss
-                }, "model_new_5_09_2023_64_capacity.pt")
+                }, "model_new_5_09_2023_bs_64_bn.pt")
         if epoch == (hparams.epochs-1):
             tb.add_hparams(vars(hparams),
                            {"hparam/train_loss":running_loss, "hparam/train_accuracy":train_accuracy,
@@ -341,9 +341,9 @@ if __name__ == "__main__":
     parser.add_argument("-ve", "--validate_every", type=int, default=20, help="Validate after each # of iterations")
     parser.add_argument("-pe", "--print_every", type=int, default=10, help="print info after each # of epochs")
     parser.add_argument("-e", "--epochs", type=int, default=1000, help="Number of maximum training epochs")
-    parser.add_argument("-bs", "--batch_size", type=int, default=4, help="Batch size")
+    parser.add_argument("-bs", "--batch_size", type=int, default=64, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
-    parser.add_argument("-lr", "--learning_rate", type=float, default=0.0003, help="Learning rate")
+    parser.add_argument("-lr", "--learning_rate", type=float, default=0.0005, help="Learning rate")
     parser.add_argument("-loss", "--loss", type=str, default="ce", help="Loss function")
     parser.add_argument("-n", "--normalize_data", type=bool, default=False, help="Loss function")
     parser.add_argument("-sp", "--spectrum", type=str, default="reducedSpectrum", help="Spectrum of MUSIC dataset")
