@@ -3,6 +3,7 @@ import numpy as np
 from torch.utils.data import DataLoader
 from src.DETCTCNN.model.model import get_model
 import torch
+import k3d
 from matplotlib import pyplot as plt
 from matplotlib.widgets import Slider
 import open3d as o3d
@@ -139,6 +140,25 @@ def main(args):
     slider_slice.on_changed(update_slice)
 
     plt.show()
+    
+    color_map = []
+    for count, color in enumerate(MUSIC_2D_PALETTE):
+        color_i = list(map(lambda x: x/255.0, color))
+        color_i.insert(0,count/15.0)
+        color_map.append(color_i)
+    print(color_map)
+
+    volume_k3d = k3d.points(positions=points,
+                          point_size=0.1,
+                          shader='flat',
+                          opacity=0.5,
+                          color_map=color_map,
+                          attribute=(np.array(classes)/15.0).tolist(),
+                          name="3D VOLUME PLOT")
+    plot = k3d.plot()
+    plot += volume_k3d
+    with open('test.html', 'w') as f:
+        f.write(plot.get_snapshot())
 
 
 if __name__ == "__main__":
