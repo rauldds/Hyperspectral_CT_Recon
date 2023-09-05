@@ -162,11 +162,7 @@ def main(hparams):
 
     # Call U-Net model
     print("Creating Model...")
-<<<<<<< HEAD
-    model = get_model(input_channels=energy_levels, n_labels=hparams.n_labels, use_bn=True, basic_out_channel=64, depth=hparams.network_depth, dropout=hparams.dropout)
-=======
     model = get_model(input_channels=energy_levels, n_labels=hparams.n_labels, use_bn=False, basic_out_channel=32, depth=hparams.network_depth, dropout=hparams.dropout)
->>>>>>> 837d1674dfd9b45b6bee9811f1f3cae80a9721cf
     model.to(device=device)
     
     # Define ADAM optimizer
@@ -271,11 +267,8 @@ def main(hparams):
             val_loss = 0.0
             val_acc = 0.0
             val_iou = 0.0
-<<<<<<< HEAD
             val_iteration = 0
-=======
             val_iou_per_class = None
->>>>>>> 837d1674dfd9b45b6bee9811f1f3cae80a9721cf
             # Iterate over the whole validation dataset
             for val_data in val_loader:
                 # Extract target and inputs
@@ -321,12 +314,8 @@ def main(hparams):
             tb.add_scalar("Val_IOU", val_iou, epoch)
             tb.add_image("Pred Val Image", torch.transpose(colored_image, 0, 2), epoch)
             tb.add_image("Target Val Image", torch.transpose(val_image, 0, 2), epoch)
-<<<<<<< HEAD
-            print(f'[INFO-Validation][epoch: {epoch:03d}/iteration: {val_iteration :03d}] validation_loss: {val_loss:.6f}, validation_acc: {val_acc:.2f}%, validation_IOU: {val_iou:.2f}%')
-=======
             print(f'[INFO-Validation][epoch: {epoch:03d}/iteration: {i :03d}] validation_loss: {val_loss:.6f}, validation_acc: {val_acc:.2f}%, validation_IOU: {val_iou:.2f}%')
             print(f'[INFO-Validation][epoch: {epoch:03d}/iteration: {i :03d}] validation IOU per class in batch: {["{0:0.2f}".format(j) for j in val_iou_per_class]}')
->>>>>>> 837d1674dfd9b45b6bee9811f1f3cae80a9721cf
 
             # Save whenever the validation loss decreases
             if ref_iou < val_iou:
@@ -346,19 +335,11 @@ def main(hparams):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-<<<<<<< HEAD
     parser.add_argument("-dr", "--data_root", type=str, default="/media/rauldds/TOSHIBA EXT/MLMI", help="Data root directory")
     parser.add_argument("-ve", "--validate_every", type=int, default=1, help="Validate after each # of iterations")
     parser.add_argument("-pe", "--print_every", type=int, default=1, help="print info after each # of epochs")
     parser.add_argument("-e", "--epochs", type=int, default=300, help="Number of maximum training epochs")
     parser.add_argument("-bs", "--batch_size", type=int, default=1, help="Batch size")
-=======
-    parser.add_argument("-dr", "--data_root", type=str, default="/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon", help="Data root directory")
-    parser.add_argument("-ve", "--validate_every", type=int, default=20, help="Validate after each # of iterations")
-    parser.add_argument("-pe", "--print_every", type=int, default=10, help="print info after each # of epochs")
-    parser.add_argument("-e", "--epochs", type=int, default=1000, help="Number of maximum training epochs")
-    parser.add_argument("-bs", "--batch_size", type=int, default=4, help="Batch size")
->>>>>>> 837d1674dfd9b45b6bee9811f1f3cae80a9721cf
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
     parser.add_argument("-lr", "--learning_rate", type=float, default=0.0003, help="Learning rate")
     parser.add_argument("-loss", "--loss", type=str, default="ce", help="Loss function")
@@ -369,13 +350,8 @@ if __name__ == "__main__":
     parser.add_argument("-no_dim_red", "--no_dim_red", type=int, default=2, help="Target no. dimensions for dim reduction")
     parser.add_argument("-sample_strategy", "--sample_strategy", choices=['grid', 'label'], default="label", help="Type of sampler to use for patches")
     parser.add_argument("-fd", "--full_dataset", type=bool, default=True, help="Use 2D and 3D datasets or not")
-<<<<<<< HEAD
     parser.add_argument("-dp", "--dropout", type=float, default=0.5, help="Dropout strenght")
     parser.add_argument("-nd", "--network_depth", type=float, default=2, help="Depth of Unet style network")
-=======
-    parser.add_argument("-dp", "--dropout", type=float, default=0.7, help="Dropout strenght")
-    parser.add_argument("-nd", "--network_depth", type=float, default=1, help="Depth of Unet style network")
->>>>>>> 837d1674dfd9b45b6bee9811f1f3cae80a9721cf
     parser.add_argument("-os2D", "--oversample_2D", type=int, default=1, help="Oversample 2D Samples")
     parser.add_argument("-dre", "--dice_reduc", type=str, default="mean", help="dice weights reduction method")
     parser.add_argument("-g", "--gamma", type=int, default=4, help="gamma of dice weights")
