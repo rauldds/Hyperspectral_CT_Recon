@@ -204,7 +204,7 @@ class MUSIC2DDataset(Dataset):
                 # between the number of slices and the number of segmentations
                 if (path == "README.md" or path == "Fruits" or
                     path == "Sample_23012018" 
-                    #or path == "Sample_24012018"
+                    # or path == "Sample_24012018"
                     or (not self.include_nonthreat and path == "NonThreat")    
                 ):
                     continue
@@ -364,8 +364,4 @@ if __name__ == "__main__":
     #print(dataset[:]["classes"])
     print(len(dataset[:]["image"]))
     print(len(dataset[:]["segmentation"]))
-    transform = JointTransform2D(crop=(20, 20), p_flip=0.5, color_jitter_params=None, long_mask=True)
-    dataset = MUSIC2DDataset(path2d=DATASET2D_PATH, path3d=DATASET3D_PATH,
-                             spectrum="reducedSpectrum", partition="valid",full_dataset=True, transform=transform)
-    print(len(dataset[:]["image"]))
-    print(len(dataset[:]["segmentation"]))
+    
