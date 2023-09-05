@@ -189,7 +189,7 @@ for label, idx in MUSIC_2D_LABELS.items():
 # Calculate accuracies for each class after the loop completes
 train_accuracies_dict = {
     label: 100 * train_class_correct[idx].item() / train_class_total[idx].item()
-    if val_class_total[idx].item() > 0 else 0.0
+    if train_class_total[idx].item() > 0 else 0.0
     for label, idx in MUSIC_2D_LABELS.items()
 }
 
