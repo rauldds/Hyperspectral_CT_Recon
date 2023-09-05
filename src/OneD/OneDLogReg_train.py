@@ -37,7 +37,7 @@ train_dataset = MUSIC1DDataset(path2d=hparams_LogReg["dataset_path_2d"],
                                          spectrum="fullSpectrum",
                                          partition="train",
                                          full_dataset=True)
-train_loader = DataLoader(train_dataset, batch_size=hparams_LogReg['batch_size'], shuffle=True)
+train_loader = DataLoader(train_dataset, batch_size=hparams_LogReg['batch_size'], shuffle=True, num_workers=8)
 num_batches = len(train_loader)
 
 val_dataset = MUSIC1DDataset(path2d=hparams_LogReg["dataset_path_2d"],
@@ -45,17 +45,14 @@ val_dataset = MUSIC1DDataset(path2d=hparams_LogReg["dataset_path_2d"],
                                          spectrum="fullSpectrum",
                                          partition="valid",
                                          full_dataset=True)
-val_loader = DataLoader(val_dataset, batch_size=hparams_LogReg['batch_size'], shuffle=False)
+val_loader = DataLoader(val_dataset, batch_size=hparams_LogReg['batch_size'], shuffle=False, num_workers=16)
 
 # Setting up early stopping mechanism parameters
 best_val_loss = float('inf')
+best_val_accuracy = 0.0
 patience = hparams_LogReg['early_stopping_patience']
 no_improvement_epochs = 0
 early_stopping_threshold = 1e-4
-
-# Initialize counters for per-class accuracy
-class_correct = torch.zeros(len(MUSIC_2D_LABELS)).to(device)
-class_total = torch.zeros(len(MUSIC_2D_LABELS)).to(device)
 
 print(f'[INFO] Training Started')
 print(f'[WARNING] Not saving model parameters until epoch {initial_epochs_buffer}\n')
@@ -70,6 +67,9 @@ for epoch in range(epochs):
 
     total_correct_val = 0
     total_samples_val = 0
+
+    train_class_correct = torch.zeros(len(MUSIC_2D_LABELS)).to(device)
+    train_class_total = torch.zeros(len(MUSIC_2D_LABELS)).to(device)
 
     for batch_idx, batch in enumerate(train_loader):
         images = batch['image'].to(device)
@@ -88,8 +88,8 @@ for epoch in range(epochs):
         correct_tensor = preds.eq(segmentations.data.view_as(preds))
         correct = correct_tensor.squeeze()
         for i, label in enumerate(segmentations):
-            class_correct[label] += correct[i].item()
-            class_total[label] += 1
+            train_class_correct[label] += correct[i].item()
+            train_class_total[label] += 1
 
         total_correct_train += correct_train
         total_samples_train += images.size(0)
@@ -117,6 +117,8 @@ for epoch in range(epochs):
     running_val_accuracy = 0.0
     model.eval()
 
+    val_class_correct = torch.zeros(len(MUSIC_2D_LABELS)).to(device)
+    val_class_total = torch.zeros(len(MUSIC_2D_LABELS)).to(device)
     with torch.no_grad():
         for val_batch_idx, val_batch in enumerate(val_loader):
             images = val_batch['image'].to(device)
@@ -133,8 +135,8 @@ for epoch in range(epochs):
             correct_tensor = preds.eq(segmentations.data.view_as(preds))
             correct = correct_tensor.squeeze()
             for i, label in enumerate(segmentations):
-                class_correct[label] += correct[i].item()
-                class_total[label] += 1
+                val_class_correct[label] += correct[i].item()
+                val_class_total[label] += 1
 
             total_correct_val += correct_val
             total_samples_val += images.size(0)
@@ -153,8 +155,9 @@ for epoch in range(epochs):
     print(f"Epoch [{epoch + 1}/{epochs}], Validation Loss: {average_val_loss:.4f}, Validation Accuracy: {avg_val_accuracy:.3f}")
 
     # Check for model improvement
-    if epoch > initial_epochs_buffer and best_val_loss - average_val_loss > early_stopping_threshold:
+    if epoch >= initial_epochs_buffer and best_val_loss - average_val_loss > early_stopping_threshold:
         best_val_loss = average_val_loss
+        best_val_accuracy = max(best_val_accuracy, avg_val_accuracy)  # Update the best_val_accuracy
         no_improvement_epochs = 0
         print(f"[INFO] New best model parameters saved @ epoch#: {epoch + 1}")
         torch.save(model.state_dict(), 'best_model.pth')
@@ -170,17 +173,36 @@ for epoch in range(epochs):
         print(f"Early stopping due to no improvement @ epoch#: {epoch + 1}")
         break
 
-print("\nAccuracy per class:")
+print("\nTraining Accuracy per class:")
 for label, idx in MUSIC_2D_LABELS.items():
-    print(f'Accuracy of {label} : {100 * class_correct[idx].item() / class_total[idx].item():.2f}%')
+    print(f'Training Accuracy of {label} : {100 * train_class_correct[idx].item() / train_class_total[idx].item():.2f}%')
+
+print("\nValidation Accuracy per class:")
+for label, idx in MUSIC_2D_LABELS.items():
+    if val_class_total[idx].item() > 0:
+        print(f'Validation Accuracy of {label} : {100 * val_class_correct[idx].item() / val_class_total[idx].item():.2f}%')
+    else:
+        print(f'Validation Accuracy of {label} : No samples found')
+
+
 
 # Calculate accuracies for each class after the loop completes
-class_accuracies_dict = {label: 100 * class_correct[idx].item() / class_total[idx].item() for label, idx in MUSIC_2D_LABELS.items()}
+train_accuracies_dict = {
+    label: 100 * train_class_correct[idx].item() / train_class_total[idx].item()
+    if val_class_total[idx].item() > 0 else 0.0
+    for label, idx in MUSIC_2D_LABELS.items()
+}
 
+
+val_accuracies_dict = {
+    label: 100 * val_class_correct[idx].item() / val_class_total[idx].item()
+    if val_class_total[idx].item() > 0 else "No samples found"
+    for label, idx in MUSIC_2D_LABELS.items()
+}
 # save png Image with hparams, accuracy per class, and best accuracy of the experiment
 plot_class_colors_and_accuracies(MUSIC_2D_LABELS,
                                  MUSIC_2D_PALETTE,
-                                 class_accuracies_dict,
-                                 best_val_loss,
+                                 train_accuracies_dict,
+                                 val_accuracies_dict,
+                                 best_val_accuracy,
                                  hparams_LogReg)
-

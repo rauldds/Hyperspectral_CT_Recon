@@ -4,7 +4,9 @@ from matplotlib import pyplot as plt
 from OneDLogReg import OneDLogReg
 import torch
 from src.MUSIC_DATASET import MUSIC2DDataset
-from src.DETCTCNN.data.music_2d_labels import MUSIC_2D_LABELS, MUSIC_2D_PALETTE
+# from src.DETCTCNN.data.music_2d_labels import MUSIC_2D_LABELS, MUSIC_2D_PALETTE
+from src.MUSIC_DATASET.utils import MUSIC_2D_LABELS
+from src.MUSIC_DATASET.utils import MUSIC_2D_PALETTE
 from tqdm import tqdm
 from utils import image_from_segmentation
 import numpy as np
@@ -79,7 +81,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("-dr", "--data_root", type=str, default=".", help="Data root directory")
+    parser.add_argument("-dr", "--data_root", type=str, default='/home/davidge/Documents/Projects/Hyperspectral_CT_Recon', help="Data root directory")
     parser.add_argument("-bs", "--batch_size", type=int, default=1, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
     parser.add_argument("-n", "--normalize_data", type=bool, default=False, help="decide if you want to normalize the data")
