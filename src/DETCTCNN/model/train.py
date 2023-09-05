@@ -65,8 +65,8 @@ def main(hparams):
     print(hparams)
     
     # Initialize Transformations
-    transform = music_2d_dataset.JointTransform2D(crop=(hparams.patch_size, hparams.patch_size), p_flip=0.5, color_jitter_params=None, long_mask=True)
-    valid_transform = music_2d_dataset.JointTransform2D(crop=(96, 96), p_flip=0.5, color_jitter_params=None, long_mask=True)
+    transform = music_2d_dataset.JointTransform2D(crop=(hparams.patch_size, hparams.patch_size), p_flip=0.5, color_jitter_params=None, long_mask=True,erosion=hparams.erosion)
+    valid_transform = music_2d_dataset.JointTransform2D(crop=(96, 96), p_flip=0.5, color_jitter_params=None, long_mask=True, erosion=hparams.erosion)
 
     # Intialize Pad
     padding = (0, int(hparams.patch_size/2), int(hparams.patch_size/2))
@@ -239,18 +239,18 @@ def main(hparams):
             tb.add_scalar("Train_acc", train_accuracy, epoch)
             tb.add_scalar("Train_IOU", train_iou, epoch)
             # Write representative image of epoch to tensorboard
-            # img_pred = y_hat[0]
-            # img_input = X[0].detach().cpu().numpy()
-            # tb_input_train = draw_inputs(img_input)
-            # train_target = y[0].detach().cpu().numpy()
-            # pred = img_pred.argmax(dim=0).detach().cpu().numpy()
-            # colored_image = palette[pred]
-            # colored_target = palette[train_target]
-            # colored_image = torch.from_numpy(colored_image.astype(np.uint8))
-            # target_image = torch.from_numpy(colored_target.astype(np.uint8))
-            # tb.add_image("Pred Train Image", torch.transpose(colored_image, 0, 2), epoch)
-            # tb.add_image("Input Train Image", tb_input_train, epoch)
-            # tb.add_image("Target Train Image", torch.transpose(target_image, 0, 2), epoch)
+            img_pred = y_hat[0]
+            img_input = X[0].detach().cpu().numpy()
+            tb_input_train = draw_inputs(img_input)
+            train_target = y[0].detach().cpu().numpy()
+            pred = img_pred.argmax(dim=0).detach().cpu().numpy()
+            colored_image = palette[pred]
+            colored_target = palette[train_target]
+            colored_image = torch.from_numpy(colored_image.astype(np.uint8))
+            target_image = torch.from_numpy(colored_target.astype(np.uint8))
+            tb.add_image("Pred Train Image", torch.transpose(colored_image, 0, 2), epoch)
+            tb.add_image("Input Train Image", tb_input_train, epoch)
+            tb.add_image("Target Train Image", torch.transpose(target_image, 0, 2), epoch)
             image_from_segmentation(y_hat, LABELS_SIZE, MUSIC_2D_PALETTE, device=device)
             print(f'[epoch: {epoch:03d}/iteration: {i :03d}] train_loss: {running_loss / hparams.print_every :.6f}, train_acc: {train_accuracy:.2f}%, train_IOU: {train_iou:.2f}%')
             print(f'[epoch: {epoch:03d}/iteration: {i :03d}] train IOU per class in batch: {["{0:0.2f}".format(j) for j in train_iou_per_class]}')
@@ -309,8 +309,8 @@ def main(hparams):
             tb.add_scalar("Val_Loss", val_loss, epoch)
             tb.add_scalar("Val_Accuracy", val_acc, epoch)
             tb.add_scalar("Val_IOU", val_iou, epoch)
-            # tb.add_image("Pred Val Image", torch.transpose(colored_image, 0, 2), epoch)
-            # tb.add_ima("Target Val Image", torch.transpose(val_image, 0, 2), epoch)
+            tb.add_image("Pred Val Image", torch.transpose(colored_image, 0, 2), epoch)
+            tb.add_image("Target Val Image", torch.transpose(val_image, 0, 2), epoch)
             print(f'[INFO-Validation][epoch: {epoch:03d}/iteration: {i :03d}] validation_loss: {val_loss:.6f}, validation_acc: {val_acc:.2f}%, validation_IOU: {val_iou:.2f}%')
             print(f'[INFO-Validation][epoch: {epoch:03d}/iteration: {i :03d}] validation IOU per class in batch: {["{0:0.2f}".format(j) for j in val_iou_per_class]}')
 
@@ -354,8 +354,11 @@ if __name__ == "__main__":
     parser.add_argument("-os2D", "--oversample_2D", type=int, default=1, help="Oversample 2D Samples")
     parser.add_argument("-dre", "--dice_reduc", type=str, default="mean", help="dice weights reduction method")
     parser.add_argument("-g", "--gamma", type=int, default=4, help="gamma of dice weights")
-    parser.add_argument("-en", "--experiment_name", type=str, default="reduced", help="name of the experiment")
+    parser.add_argument("-en", "--experiment_name", type=str, default="erosion", help="name of the experiment")
     parser.add_argument("-l1", "--l1_reg", type=bool, default=False, help="use l1 regularization?")
     parser.add_argument("-sf", "--split_file", type=bool, default=True, help="use pickle split")
+    parser.add_argument("-bsel", "--band_selection", type=str, default=None, help="path to band list")
+    parser.add_argument("-ls", "--label_smoothing", type=float, default=0.0, help="how much label smoothing")
+    parser.add_argument("-ero", "--erosion", type=bool, default=True, help="apply erosion as augmention")
     args = parser.parse_args()
     main(args)
