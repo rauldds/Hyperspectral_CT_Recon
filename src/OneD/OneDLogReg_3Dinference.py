@@ -1,15 +1,14 @@
 from argparse import ArgumentParser
 
 from matplotlib import pyplot as plt
-from OneDLogReg import OneDLogReg
+from  src.OneD.OneDLogReg import OneDLogReg
 import k3d
 import torch
-from src.MUSIC_DATASET import MUSIC2DDataset
+from src.DETCTCNN.data.music_2d_dataset import MUSIC2DDataset
 # from src.DETCTCNN.data.music_2d_labels import MUSIC_2D_LABELS, MUSIC_2D_PALETTE
-from src.MUSIC_DATASET.utils import MUSIC_2D_LABELS
-from src.MUSIC_DATASET.utils import MUSIC_2D_PALETTE
+from src.MUSIC_DATASET.utils.music_2d_labels import MUSIC_2D_LABELS, MUSIC_2D_PALETTE
 from tqdm import tqdm
-from utils import image_from_segmentation
+from src.OneD.utils import image_from_segmentation
 import numpy as np
 from torch.utils.data import DataLoader
 import open3d as o3d
@@ -19,7 +18,7 @@ palette = np.array(MUSIC_2D_PALETTE)
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
 model = OneDLogReg().to(device=device)
-checkpoint = torch.load("best_model.pth",
+checkpoint = torch.load("david_model.pth",
                         map_location=torch.device(device=device))
 model.load_state_dict(checkpoint)
 model.eval()
@@ -102,7 +101,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("-dr", "--data_root", type=str, default='/home/davidge/Documents/Projects/Hyperspectral_CT_Recon', help="Data root directory")
+    parser.add_argument("-dr", "--data_root", type=str, default='/media/rauldds/TOSHIBA EXT/MLMI', help="Data root directory")
     parser.add_argument("-bs", "--batch_size", type=int, default=1, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
     parser.add_argument("-n", "--normalize_data", type=bool, default=False, help="decide if you want to normalize the data")
