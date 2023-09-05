@@ -1,4 +1,6 @@
 import numpy as np
+import torch
+from numpy import inf
 from PIL import Image
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
@@ -66,3 +68,23 @@ def plot_class_colors_and_accuracies(labels_dict, palette, train_accuracies, val
 
     plt.tight_layout()
     plt.savefig(filename, bbox_inches="tight")
+
+
+def class_frequencies(dataset, n_classes):
+    """ Calculates the loss weights of a dataset"""
+    freqs = np.zeros(n_classes)
+    for sample in dataset:
+        gt = sample["segmentation"].argmax(0)
+        ind, count = np.unique(gt, return_counts=True)
+        # Add previous freq to current count
+        freqs[ind] = freqs[ind] + count
+    return freqs
+
+def class_weights(dataset, n_classes):
+      freqs = class_frequencies(dataset=dataset, n_classes=n_classes)
+      med = np.median(freqs[freqs != 0])
+      w_s = med/freqs
+      # Infrequent classes have high loss
+      w_s[w_s == inf] = 100
+      w_s = torch.from_numpy(w_s)
+      return w_s/sum(w_s)
