@@ -347,8 +347,6 @@ if __name__ == "__main__":
     parser.add_argument("-no_dim_red", "--no_dim_red", type=int, default=10, help="Target no. dimensions for dim reduction")
     parser.add_argument("-sample_strategy", "--sample_strategy", choices=['grid', 'label'], default="label", help="Type of sampler to use for patches")
     parser.add_argument("-fd", "--full_dataset", type=bool, default=True, help="Use 2D and 3D datasets or not")
-    parser.add_argument("-bsel", "--band_selection", type=str, default=None, help="path to band list")
-    parser.add_argument("-ls", "--label_smoothing", type=float, default=0.0, help="how much label smoothing")
     parser.add_argument("-dp", "--dropout", type=float, default=0.7, help="Dropout strenght")
     parser.add_argument("-nd", "--network_depth", type=float, default=1, help="Depth of Unet style network")
     parser.add_argument("-os2D", "--oversample_2D", type=int, default=1, help="Oversample 2D Samples")
