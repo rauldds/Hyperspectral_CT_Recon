@@ -5,11 +5,13 @@ from torch.utils.tensorboard import SummaryWriter
 import torch.optim.lr_scheduler as lr_scheduler
 from src.OneD.OneDLogReg import OneDLogReg, OneDLogRegSkip
 from src.MUSIC_DATASET import MUSIC1DDataset
+from src.MUSIC_DATASET import MUSIC2DDataset
 from src.MUSIC_DATASET.utils import MUSIC_2D_LABELS
 from src.MUSIC_DATASET.utils import MUSIC_2D_PALETTE
 from src.OneD.config import hparams_LogReg
 from utils import image_from_segmentation
 from utils import plot_class_colors_and_accuracies
+from utils import class_weights
 
 LABELS_SIZE = len(MUSIC_2D_LABELS)
 log_interval = hparams_LogReg['log_interval']
@@ -24,10 +26,27 @@ print(f"device: {device}")
 model = OneDLogReg()
 model.to(device)
 
+weights_dataset = MUSIC2DDataset(
+    path2d=hparams_LogReg["dataset_path_2d"], path3d=hparams_LogReg["dataset_path_3d"],
+    partition="train",
+    spectrum="fullSpectrum",
+    transform=None,
+    full_dataset=True,
+)
+
+print("Generating Weights...")
+dice_weights = class_weights(dataset=weights_dataset, n_classes=len(MUSIC_2D_LABELS))
+# dice_weights = class_weights_sklearn(dataset=weights_dataset, n_classes=len(MUSIC_2D_LABELS))
+
+# Check dice weights used to weight loss function
+dice_weights = dice_weights.float().to(device=device)
+print(dice_weights)
+
+
 # Define optimizer and loss criterion
 optimizer = torch.optim.Adam(model.parameters(), lr=hparams_LogReg['lr'])
 scheduler  = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min')
-loss_criterion = torch.nn.CrossEntropyLoss().to(device)
+loss_criterion = torch.nn.CrossEntropyLoss(weight=dice_weights).to(device)
 
 epochs = hparams_LogReg['epochs']
 
@@ -36,16 +55,16 @@ train_dataset = MUSIC1DDataset(path2d=hparams_LogReg["dataset_path_2d"],
                                          path3d=hparams_LogReg["dataset_path_3d"],
                                          spectrum="fullSpectrum",
                                          partition="train",
-                                         full_dataset=True)
-train_loader = DataLoader(train_dataset, batch_size=hparams_LogReg['batch_size'], shuffle=True, num_workers=8)
+                                         full_dataset=True, split_file=True)
+train_loader = DataLoader(train_dataset, batch_size=hparams_LogReg['batch_size'], shuffle=True)
 num_batches = len(train_loader)
 
 val_dataset = MUSIC1DDataset(path2d=hparams_LogReg["dataset_path_2d"],
                                          path3d=hparams_LogReg["dataset_path_3d"],
                                          spectrum="fullSpectrum",
                                          partition="valid",
-                                         full_dataset=True)
-val_loader = DataLoader(val_dataset, batch_size=hparams_LogReg['batch_size'], shuffle=False, num_workers=16)
+                                         full_dataset=True, split_file=True)
+val_loader = DataLoader(val_dataset, batch_size=hparams_LogReg['batch_size'], shuffle=False)
 
 # Setting up early stopping mechanism parameters
 best_val_loss = float('inf')

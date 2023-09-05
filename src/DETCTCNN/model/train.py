@@ -164,14 +164,14 @@ def main(hparams):
 
     # Call U-Net model
     print("Creating Model...")
-    model = get_model(input_channels=energy_levels, n_labels=hparams.n_labels, use_bn=False, basic_out_channel=64, depth=hparams.network_depth, dropout=hparams.dropout)
+    model = get_model(input_channels=energy_levels, n_labels=hparams.n_labels, use_bn=False, basic_out_channel=32, depth=hparams.network_depth, dropout=hparams.dropout)
     model.to(device=device)
     
     # Define ADAM optimizer
     optimizer = torch.optim.Adam(model.parameters(), betas=([0.9, 0.999]), lr = hparams.learning_rate)
 
     # Define Learning Rate Scheduler 
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=50, factor=0.5)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=15, factor=0.5)
 
     # Define Tensorboard writer
     tb = SummaryWriter(f'runs/{hparams.experiment_name}/patch_size_{hparams.patch_size}_{datetime.datetime.now().strftime("%b%d_%H-%M-%S")}')
@@ -269,11 +269,16 @@ def main(hparams):
             val_loss = 0.0
             val_acc = 0.0
             val_iou = 0.0
+<<<<<<< HEAD
+            val_iteration = 0
+=======
             val_iou_per_class = None
+>>>>>>> 837d1674dfd9b45b6bee9811f1f3cae80a9721cf
             # Iterate over the whole validation dataset
             for val_data in val_loader:
                 # Extract target and inputs
                 val_X, val_y  = val_data['image'], val_data['segmentation']
+                val_iteration += val_X.shape[0]
                 if hparams.loss == "ce" or hparams.loss == "focal":
                     val_y = val_y.argmax(1)
                 val_X = val_X.to(device)
@@ -312,10 +317,11 @@ def main(hparams):
             tb.add_scalar("Val_Loss", val_loss, epoch)
             tb.add_scalar("Val_Accuracy", val_acc, epoch)
             tb.add_scalar("Val_IOU", val_iou, epoch)
-            # tb.add_image("Pred Val Image", torch.transpose(colored_image, 0, 2), epoch)
-            # tb.add_image("Target Val Image", torch.transpose(val_image, 0, 2), epoch)
+            tb.add_image("Pred Val Image", torch.transpose(colored_image, 0, 2), epoch)
+            tb.add_image("Target Val Image", torch.transpose(val_image, 0, 2), epoch)
             print(f'[INFO-Validation][epoch: {epoch:03d}/iteration: {i :03d}] validation_loss: {val_loss:.6f}, validation_acc: {val_acc:.2f}%, validation_IOU: {val_iou:.2f}%')
             print(f'[INFO-Validation][epoch: {epoch:03d}/iteration: {i :03d}] validation IOU per class in batch: {["{0:0.2f}".format(j) for j in val_iou_per_class]}')
+>>>>>>> 837d1674dfd9b45b6bee9811f1f3cae80a9721cf
 
             # Save whenever the validation loss decreases
             if ref_iou < val_iou:
@@ -335,27 +341,35 @@ def main(hparams):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
+<<<<<<< HEAD
+    parser.add_argument("-dr", "--data_root", type=str, default="/media/rauldds/TOSHIBA EXT/MLMI", help="Data root directory")
+    parser.add_argument("-ve", "--validate_every", type=int, default=1, help="Validate after each # of iterations")
+    parser.add_argument("-pe", "--print_every", type=int, default=1, help="print info after each # of epochs")
+    parser.add_argument("-e", "--epochs", type=int, default=300, help="Number of maximum training epochs")
+    parser.add_argument("-bs", "--batch_size", type=int, default=1, help="Batch size")
+=======
     parser.add_argument("-dr", "--data_root", type=str, default="/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon", help="Data root directory")
     parser.add_argument("-ve", "--validate_every", type=int, default=20, help="Validate after each # of iterations")
     parser.add_argument("-pe", "--print_every", type=int, default=10, help="print info after each # of epochs")
     parser.add_argument("-e", "--epochs", type=int, default=1000, help="Number of maximum training epochs")
-    parser.add_argument("-bs", "--batch_size", type=int, default=16, help="Batch size")
+    parser.add_argument("-bs", "--batch_size", type=int, default=4, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
-    parser.add_argument("-lr", "--learning_rate", type=float, default=0.0005, help="Learning rate")
+    parser.add_argument("-lr", "--learning_rate", type=float, default=0.0003, help="Learning rate")
     parser.add_argument("-loss", "--loss", type=str, default="ce", help="Loss function")
     parser.add_argument("-n", "--normalize_data", type=bool, default=False, help="Loss function")
     parser.add_argument("-sp", "--spectrum", type=str, default="reducedSpectrum", help="Spectrum of MUSIC dataset")
     parser.add_argument("-ps", "--patch_size", type=int, default=100, help="2D patch size, should be multiple of 128")
     parser.add_argument("-dim_red", "--dim_red", choices=['none', 'pca', 'merge'], default="none", help="Use dimensionality reduction")
-    parser.add_argument("-no_dim_red", "--no_dim_red", type=int, default=10, help="Target no. dimensions for dim reduction")
+    parser.add_argument("-no_dim_red", "--no_dim_red", type=int, default=2, help="Target no. dimensions for dim reduction")
     parser.add_argument("-sample_strategy", "--sample_strategy", choices=['grid', 'label'], default="label", help="Type of sampler to use for patches")
     parser.add_argument("-fd", "--full_dataset", type=bool, default=True, help="Use 2D and 3D datasets or not")
-    parser.add_argument("-dp", "--dropout", type=float, default=0.3, help="Dropout strenght")
+    parser.add_argument("-dp", "--dropout", type=float, default=0.7, help="Dropout strenght")
     parser.add_argument("-nd", "--network_depth", type=float, default=1, help="Depth of Unet style network")
+>>>>>>> 837d1674dfd9b45b6bee9811f1f3cae80a9721cf
     parser.add_argument("-os2D", "--oversample_2D", type=int, default=1, help="Oversample 2D Samples")
     parser.add_argument("-dre", "--dice_reduc", type=str, default="mean", help="dice weights reduction method")
     parser.add_argument("-g", "--gamma", type=int, default=4, help="gamma of dice weights")
-    parser.add_argument("-en", "--experiment_name", type=str, default="erosion", help="name of the experiment")
+    parser.add_argument("-en", "--experiment_name", type=str, default="only_oversample2d", help="name of the experiment")
     parser.add_argument("-l1", "--l1_reg", type=bool, default=False, help="use l1 regularization?")
     parser.add_argument("-sf", "--split_file", type=bool, default=True, help="use pickle split")
     parser.add_argument("-bsel", "--band_selection", type=str, default=None, help="path to band list")
