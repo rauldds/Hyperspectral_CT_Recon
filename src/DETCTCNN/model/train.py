@@ -149,11 +149,13 @@ def main(hparams):
         dim_red = hparams.dim_red,
         no_dim_red = hparams.no_dim_red,
         eliminate_empty=False,
-        include_nonthreat=True
+        include_nonthreat=True,
+        oversample_2D=1,
+        split_file=hparams.split_file
     )
 
     print("Generating Weights...")
-    dice_weights = class_weights(dataset=weights_dataset, n_classes=len(MUSIC_2D_LABELS))
+    dice_weights = class_weights(dataset=train_dataset, n_classes=len(MUSIC_2D_LABELS))
     #dice_weights = class_weights_sklearn(dataset=weights_dataset, n_classes=len(MUSIC_2D_LABELS))
 
     # Check dice weights used to weight loss function
@@ -240,18 +242,18 @@ def main(hparams):
             tb.add_scalar("Train_acc", train_accuracy, epoch)
             tb.add_scalar("Train_IOU", train_iou, epoch)
             # Write representative image of epoch to tensorboard
-            img_pred = y_hat[0]
-            img_input = X[0].detach().cpu().numpy()
-            tb_input_train = draw_inputs(img_input)
-            train_target = y[0].detach().cpu().numpy()
-            pred = img_pred.argmax(dim=0).detach().cpu().numpy()
-            colored_image = palette[pred]
-            colored_target = palette[train_target]
-            colored_image = torch.from_numpy(colored_image.astype(np.uint8))
-            target_image = torch.from_numpy(colored_target.astype(np.uint8))
-            tb.add_image("Pred Train Image", torch.transpose(colored_image, 0, 2), epoch)
-            tb.add_image("Input Train Image", tb_input_train, epoch)
-            tb.add_image("Target Train Image", torch.transpose(target_image, 0, 2), epoch)
+            # img_pred = y_hat[0]
+            # img_input = X[0].detach().cpu().numpy()
+            # tb_input_train = draw_inputs(img_input)
+            # train_target = y[0].detach().cpu().numpy()
+            # pred = img_pred.argmax(dim=0).detach().cpu().numpy()
+            # colored_image = palette[pred]
+            # colored_target = palette[train_target]
+            # colored_image = torch.from_numpy(colored_image.astype(np.uint8))
+            # target_image = torch.from_numpy(colored_target.astype(np.uint8))
+            # tb.add_image("Pred Train Image", torch.transpose(colored_image, 0, 2), epoch)
+            # tb.add_image("Input Train Image", tb_input_train, epoch)
+            # tb.add_image("Target Train Image", torch.transpose(target_image, 0, 2), epoch)
             image_from_segmentation(y_hat, LABELS_SIZE, MUSIC_2D_PALETTE, device=device)
             print(f'[epoch: {epoch:03d}/iteration: {i :03d}] train_loss: {running_loss / hparams.print_every :.6f}, train_acc: {train_accuracy:.2f}%, train_IOU: {train_iou:.2f}%')
             print(f'[epoch: {epoch:03d}/iteration: {i :03d}] train IOU per class in batch: {["{0:0.2f}".format(j) for j in train_iou_per_class]}')
@@ -326,7 +328,7 @@ def main(hparams):
                     "model_state_dict": model.state_dict(),
                     "optimizer_state_dict": optimizer.state_dict(),
                     "loss": running_loss
-                }, "model_with_bn.pt")
+                }, "model_new_5_09_2023_64_capacity.pt")
         if epoch == (hparams.epochs-1):
             tb.add_hparams(vars(hparams),
                            {"hparam/train_loss":running_loss, "hparam/train_accuracy":train_accuracy,
@@ -345,13 +347,13 @@ if __name__ == "__main__":
     parser.add_argument("-loss", "--loss", type=str, default="ce", help="Loss function")
     parser.add_argument("-n", "--normalize_data", type=bool, default=False, help="Loss function")
     parser.add_argument("-sp", "--spectrum", type=str, default="reducedSpectrum", help="Spectrum of MUSIC dataset")
-    parser.add_argument("-ps", "--patch_size", type=int, default=40, help="2D patch size, should be multiple of 128")
+    parser.add_argument("-ps", "--patch_size", type=int, default=100, help="2D patch size, should be multiple of 128")
     parser.add_argument("-dim_red", "--dim_red", choices=['none', 'pca', 'merge'], default="none", help="Use dimensionality reduction")
     parser.add_argument("-no_dim_red", "--no_dim_red", type=int, default=2, help="Target no. dimensions for dim reduction")
     parser.add_argument("-sample_strategy", "--sample_strategy", choices=['grid', 'label'], default="label", help="Type of sampler to use for patches")
     parser.add_argument("-fd", "--full_dataset", type=bool, default=True, help="Use 2D and 3D datasets or not")
-    parser.add_argument("-dp", "--dropout", type=float, default=0.5, help="Dropout strenght")
-    parser.add_argument("-nd", "--network_depth", type=float, default=2, help="Depth of Unet style network")
+    parser.add_argument("-dp", "--dropout", type=float, default=0.7, help="Dropout strenght")
+    parser.add_argument("-nd", "--network_depth", type=float, default=1, help="Depth of Unet style network")
     parser.add_argument("-os2D", "--oversample_2D", type=int, default=1, help="Oversample 2D Samples")
     parser.add_argument("-dre", "--dice_reduc", type=str, default="mean", help="dice weights reduction method")
     parser.add_argument("-g", "--gamma", type=int, default=4, help="gamma of dice weights")

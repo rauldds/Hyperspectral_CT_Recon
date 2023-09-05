@@ -180,7 +180,8 @@ class MUSIC2DDataset(Dataset):
                 segmentation_file.close()
         if self.full_dataset and (self.partition=="test3D"):
             test_samples = ["Sample_23012018", "Sample_24012018"]
-            idx = random.randint(0,1)
+            # idx = random.randint(0,1)
+            idx = 0
             for path in os.listdir(self.path3d):
                 if (path != test_samples[idx]):
                     continue
