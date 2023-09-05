@@ -145,7 +145,6 @@ def main(args):
     for count, color in enumerate(MUSIC_2D_PALETTE):
         color_i = list(map(lambda x: x/255.0, color))
         color_i.insert(0,count/15.0)
-        print(color_i)
         color_map.append(color_i)
     print(color_map)
 
@@ -154,7 +153,7 @@ def main(args):
                           shader='flat',
                           opacity=0.5,
                           color_map=color_map,
-                          attribute=(np.array(classes)/15).tolist(),
+                          attribute=(np.array(classes)/15.0).tolist(),
                           name="3D VOLUME PLOT")
     plot = k3d.plot()
     plot += volume_k3d
