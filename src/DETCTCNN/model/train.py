@@ -272,6 +272,8 @@ def main(hparams):
             val_iou = 0.0
             val_iteration = 0
             val_iou_per_class = None
+            # Get no of ocurrences per batch
+            val_class_counts = torch.zeros(LABELS_SIZE)
             # Iterate over the whole validation dataset
             for val_data in val_loader:
                 # Extract target and inputs
@@ -299,6 +301,7 @@ def main(hparams):
                 val_loss +=loss.item()
                 val_acc += calculate_accuracy(val_pred, val_y)
                 val_iou_per_class_cur, val_iou_cur = mIoU_score(val_pred.cpu().argmax(1), val_y.cpu(), n_classes=LABELS_SIZE)
+                val_class_counts = val_class_counts + (torch.logical_not(torch.isnan(val_iou_per_class_cur))).long()
                 val_iou += val_iou_cur * 100
                 if val_iou_per_class == None:
                     val_iou_per_class = val_iou_per_class_cur
@@ -309,6 +312,7 @@ def main(hparams):
             val_loss /= len(val_loader)
             val_acc /= len(val_loader)
             val_iou /= len(val_loader)
+            val_class_counts /= val_class_counts
             val_loss  = val_loss
             #Scheduler Step
             scheduler.step(val_iou)
@@ -330,7 +334,7 @@ def main(hparams):
                     "model_state_dict": model.state_dict(),
                     "optimizer_state_dict": optimizer.state_dict(),
                     "loss": running_loss
-                }, "model_new_6_09_2023_bs_128_depth3_cedice.pt")
+                }, "model_new_6_09_2023_bs_128_depth3_focal.pt")
         if epoch == (hparams.epochs-1):
             tb.add_hparams(vars(hparams),
                            {"hparam/train_loss":running_loss, "hparam/train_accuracy":train_accuracy,
@@ -346,7 +350,7 @@ if __name__ == "__main__":
     parser.add_argument("-bs", "--batch_size", type=int, default=128, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
     parser.add_argument("-lr", "--learning_rate", type=float, default=0.0005, help="Learning rate")
-    parser.add_argument("-loss", "--loss", type=str, default="cedice", help="Loss function")
+    parser.add_argument("-loss", "--loss", type=str, default="focal", help="Loss function")
     parser.add_argument("-n", "--normalize_data", type=bool, default=False, help="Loss function")
     parser.add_argument("-sp", "--spectrum", type=str, default="reducedSpectrum", help="Spectrum of MUSIC dataset")
     parser.add_argument("-ps", "--patch_size", type=int, default=40, help="2D patch size, should be multiple of 128")
@@ -358,8 +362,8 @@ if __name__ == "__main__":
     parser.add_argument("-nd", "--network_depth", type=float, default=3, help="Depth of Unet style network")
     parser.add_argument("-os2D", "--oversample_2D", type=int, default=1, help="Oversample 2D Samples")
     parser.add_argument("-dre", "--dice_reduc", type=str, default="mean", help="dice weights reduction method")
-    parser.add_argument("-g", "--gamma", type=int, default=4, help="gamma of dice weights")
-    parser.add_argument("-en", "--experiment_name", type=str, default="ce_dice", help="name of the experiment")
+    parser.add_argument("-g", "--gamma", type=int, default=3, help="gamma of dice weights")
+    parser.add_argument("-en", "--experiment_name", type=str, default="focal", help="name of the experiment")
     parser.add_argument("-l1", "--l1_reg", type=bool, default=False, help="use l1 regularization?")
     parser.add_argument("-sf", "--split_file", type=bool, default=True, help="use pickle split")
     parser.add_argument("-bsel", "--band_selection", type=str, default=None, help="path to band list")
