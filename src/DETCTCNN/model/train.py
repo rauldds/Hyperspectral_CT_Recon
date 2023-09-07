@@ -304,9 +304,9 @@ def main(hparams):
                 val_class_counts = val_class_counts + (torch.logical_not(torch.isnan(val_iou_per_class_cur))).long()
                 val_iou += val_iou_cur * 100
                 if val_iou_per_class == None:
-                    val_iou_per_class = val_iou_per_class_cur
+                    val_iou_per_class = torch.nan_to_num(val_iou_per_class_cur)
                 else:
-                    val_iou_per_class += val_iou_per_class_cur
+                    val_iou_per_class += torch.nan_to_num(val_iou_per_class_cur)
 
                     
             val_loss /= len(val_loader)
