@@ -312,7 +312,7 @@ def main(hparams):
             val_loss /= len(val_loader)
             val_acc /= len(val_loader)
             val_iou /= len(val_loader)
-            val_class_counts /= val_class_counts
+            val_iou_per_class /= val_class_counts
             val_loss  = val_loss
             #Scheduler Step
             scheduler.step(val_iou)
@@ -334,7 +334,7 @@ def main(hparams):
                     "model_state_dict": model.state_dict(),
                     "optimizer_state_dict": optimizer.state_dict(),
                     "loss": running_loss
-                }, "model_new_6_09_2023_bs_128_depth3_focal.pt")
+                }, "model_new_6_09_2023_bs_128_depth3_test.pt")
         if epoch == (hparams.epochs-1):
             tb.add_hparams(vars(hparams),
                            {"hparam/train_loss":running_loss, "hparam/train_accuracy":train_accuracy,
@@ -347,7 +347,7 @@ if __name__ == "__main__":
     parser.add_argument("-ve", "--validate_every", type=int, default=20, help="Validate after each # of iterations")
     parser.add_argument("-pe", "--print_every", type=int, default=10, help="print info after each # of epochs")
     parser.add_argument("-e", "--epochs", type=int, default=4000, help="Number of maximum training epochs")
-    parser.add_argument("-bs", "--batch_size", type=int, default=128, help="Batch size")
+    parser.add_argument("-bs", "--batch_size", type=int, default=64, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
     parser.add_argument("-lr", "--learning_rate", type=float, default=0.0005, help="Learning rate")
     parser.add_argument("-loss", "--loss", type=str, default="focal", help="Loss function")
