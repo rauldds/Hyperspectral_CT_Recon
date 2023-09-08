@@ -3,7 +3,7 @@ from ast import arg
 import datetime
 from sys import path
 from typing import Dict
-from src.DETCTCNN.model.losses import DiceLoss, CEDiceLoss, FocalLoss
+from src.DETCTCNN.model.losses import CEDiceLoss, FocalLoss
 from src.DETCTCNN.model.model import get_model
 import torch
 from torch.utils.tensorboard import SummaryWriter
@@ -66,7 +66,7 @@ def main(hparams):
     print(hparams)
     
     # Initialize Transformations
-    transform = music_2d_dataset.JointTransform2D(crop=(hparams.patch_size, hparams.patch_size), p_flip=0.5, color_jitter_params=None, long_mask=True,erosion=hparams.erosion)
+    transform = music_2d_dataset.JointTransform2D(crop=(hparams.patch_size, hparams.patch_size), p_flip=0.5, color_jitter_params=None, long_mask=True,erosion=hparams.erosion, p_random_affine=0.3)
     valid_transform = music_2d_dataset.JointTransform2D(crop=(96, 96), p_flip=0.5, color_jitter_params=None, long_mask=True, erosion=hparams.erosion)
 
     # Intialize Pad
@@ -181,7 +181,7 @@ def main(hparams):
 
     # Call U-Net model
     print("Creating Model...")
-    model = get_model(input_channels=energy_levels, n_labels=hparams.n_labels, use_bn=False, basic_out_channel=32, depth=hparams.network_depth, dropout=hparams.dropout)
+    model = get_model(input_channels=energy_levels, n_labels=hparams.n_labels, use_bn=True, basic_out_channel=32, depth=hparams.network_depth, dropout=hparams.dropout)
     model.to(device=device)
     
     # Define ADAM optimizer
@@ -244,6 +244,7 @@ def main(hparams):
             optimizer.step()
 
             if hparams.loss == "dice" or hparams.loss == "cedice":
+                y = y.cpu()
                 y = y.argmax(1)
 
             # print statistics
@@ -271,7 +272,7 @@ def main(hparams):
             # tb.add_image("Pred Train Image", torch.transpose(colored_image, 0, 2), epoch)
             # tb.add_image("Input Train Image", tb_input_train, epoch)
             # tb.add_image("Target Train Image", torch.transpose(target_image, 0, 2), epoch)
-            image_from_segmentation(y_hat, LABELS_SIZE, MUSIC_2D_PALETTE, device=device)
+            # image_from_segmentation(y_hat, LABELS_SIZE, MUSIC_2D_PALETTE, device=device)
             print(f'[epoch: {epoch:03d}/iteration: {i :03d}] train_loss: {running_loss / hparams.print_every :.6f}, train_acc: {train_accuracy:.2f}%, train_IOU: {train_iou:.2f}%')
             print(f'[epoch: {epoch:03d}/iteration: {i :03d}] train IOU per class in batch: {["{0:0.2f}".format(j) for j in train_iou_per_class]}')
 
@@ -288,6 +289,8 @@ def main(hparams):
             val_iou = 0.0
             val_iteration = 0
             val_iou_per_class = None
+            # Get no of ocurrences per batch
+            val_class_counts = torch.zeros(LABELS_SIZE)
             # Iterate over the whole validation dataset
             for val_data in val_loader:
                 # Extract target and inputs
@@ -302,6 +305,7 @@ def main(hparams):
                     val_pred = model(val_X)
                     loss = loss_criterion(val_pred, val_y)
                     if hparams.loss == "dice" or hparams.loss == "cedice":
+                        val_y = val_y.cpu()
                         val_y = val_y.argmax(1)
                     #Convert prediction to an image (numpy array)
                     # img_pred = val_pred[0]
@@ -314,16 +318,18 @@ def main(hparams):
                 val_loss +=loss.item()
                 val_acc += calculate_accuracy(val_pred, val_y)
                 val_iou_per_class_cur, val_iou_cur = mIoU_score(val_pred.cpu().argmax(1), val_y.cpu(), n_classes=LABELS_SIZE)
+                val_class_counts = val_class_counts + (torch.logical_not(torch.isnan(val_iou_per_class_cur))).long()
                 val_iou += val_iou_cur * 100
                 if val_iou_per_class == None:
-                    val_iou_per_class = val_iou_per_class_cur
+                    val_iou_per_class = torch.nan_to_num(val_iou_per_class_cur)
                 else:
-                    val_iou_per_class += val_iou_per_class_cur
+                    val_iou_per_class += torch.nan_to_num(val_iou_per_class_cur)
 
                     
             val_loss /= len(val_loader)
             val_acc /= len(val_loader)
             val_iou /= len(val_loader)
+            val_iou_per_class /= val_class_counts
             val_loss  = val_loss
             #Scheduler Step
             scheduler.step(val_iou)
@@ -345,7 +351,7 @@ def main(hparams):
                     "model_state_dict": model.state_dict(),
                     "optimizer_state_dict": optimizer.state_dict(),
                     "loss": running_loss
-                }, "model_new_5_09_2023_64_capacity.pt")
+                }, "model_new_6_09_2023_bs_128_depth3_test.pt")
         if epoch == (hparams.epochs-1):
             tb.add_hparams(vars(hparams),
                            {"hparam/train_loss":running_loss, "hparam/train_accuracy":train_accuracy,
@@ -360,21 +366,21 @@ if __name__ == "__main__":
     parser.add_argument("-e", "--epochs", type=int, default=10, help="Number of maximum training epochs")
     parser.add_argument("-bs", "--batch_size", type=int, default=1, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
-    parser.add_argument("-lr", "--learning_rate", type=float, default=0.0003, help="Learning rate")
-    parser.add_argument("-loss", "--loss", type=str, default="ce", help="Loss function")
+    parser.add_argument("-lr", "--learning_rate", type=float, default=0.0005, help="Learning rate")
+    parser.add_argument("-loss", "--loss", type=str, default="focal", help="Loss function")
     parser.add_argument("-n", "--normalize_data", type=bool, default=False, help="Loss function")
     parser.add_argument("-sp", "--spectrum", type=str, default="reducedSpectrum", help="Spectrum of MUSIC dataset")
-    parser.add_argument("-ps", "--patch_size", type=int, default=100, help="2D patch size, should be multiple of 128")
+    parser.add_argument("-ps", "--patch_size", type=int, default=40, help="2D patch size, should be multiple of 128")
     parser.add_argument("-dim_red", "--dim_red", choices=['none', 'pca', 'merge'], default="none", help="Use dimensionality reduction")
-    parser.add_argument("-no_dim_red", "--no_dim_red", type=int, default=2, help="Target no. dimensions for dim reduction")
+    parser.add_argument("-no_dim_red", "--no_dim_red", type=int, default=10, help="Target no. dimensions for dim reduction")
     parser.add_argument("-sample_strategy", "--sample_strategy", choices=['grid', 'label'], default="label", help="Type of sampler to use for patches")
     parser.add_argument("-fd", "--full_dataset", type=bool, default=True, help="Use 2D and 3D datasets or not")
     parser.add_argument("-dp", "--dropout", type=float, default=0.7, help="Dropout strenght")
-    parser.add_argument("-nd", "--network_depth", type=float, default=1, help="Depth of Unet style network")
+    parser.add_argument("-nd", "--network_depth", type=float, default=3, help="Depth of Unet style network")
     parser.add_argument("-os2D", "--oversample_2D", type=int, default=1, help="Oversample 2D Samples")
     parser.add_argument("-dre", "--dice_reduc", type=str, default="mean", help="dice weights reduction method")
-    parser.add_argument("-g", "--gamma", type=int, default=4, help="gamma of dice weights")
-    parser.add_argument("-en", "--experiment_name", type=str, default="only_oversample2d", help="name of the experiment")
+    parser.add_argument("-g", "--gamma", type=int, default=3, help="gamma of dice weights")
+    parser.add_argument("-en", "--experiment_name", type=str, default="focal", help="name of the experiment")
     parser.add_argument("-l1", "--l1_reg", type=bool, default=False, help="use l1 regularization?")
     parser.add_argument("-sf", "--split_file", type=bool, default=True, help="use pickle split")
     parser.add_argument("-bsel", "--band_selection", type=str, default=None, help="path to band list")

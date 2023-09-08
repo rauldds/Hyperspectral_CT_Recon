@@ -73,6 +73,7 @@ runs/
 runs*/
 img/
 checkpoints/
+new_split_checkpoints/
 
 src/OneD/best_model.pth
 src/OneD/pg.py
