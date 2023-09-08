@@ -9,6 +9,7 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 from src.DETCTCNN.data.music_2d_labels import MUSIC_2D_LABELS, MUSIC_2D_PALETTE
 from  src.DETCTCNN.data import music_2d_dataset
+from src.DETCTCNN.data.all_class_sampler import AllClassSampler
 from src.DETCTCNN.model.losses import DiceLossV2
 from src.DETCTCNN.model.metrics import mIoU_score
 from src.DETCTCNN.model.utils import calculate_min_max, class_weights, class_weights_sklearn, image_from_segmentation, plot_segmentation, calculate_data_statistics, standardize, normalize
@@ -110,7 +111,23 @@ def main(hparams):
     #########       START: Configs for patch training     ##########
     ################################################################
 
+    # DATASET FOR SAMPLER (NO TRANSFORM)
+    ds_fs = MUSIC2DDataset(
+        path2d=path2d, path3d=path3d,
+        partition="train", 
+        spectrum=hparams.spectrum,
+        transform=None, 
+        full_dataset=hparams.full_dataset, 
+        dim_red = hparams.dim_red,
+        no_dim_red = hparams.no_dim_red,
+        band_selection = hparams.band_selection,
+        include_nonthreat=True,
+        oversample_2D=hparams.oversample_2D,
+        split_file=hparams.split_file)
+    our_sampler = AllClassSampler(data_source=ds_fs,batch_size=hparams.batch_size)
+
     train_loader = DataLoader(dataset=train_dataset, batch_size=hparams.batch_size,shuffle=True)
+    #train_loader = DataLoader(dataset=train_dataset, batch_size=hparams.batch_size,sampler = our_sampler,drop_last=True)
 
     print("Loading Validation Data (And applying dim reduction)...")
     # Define the validation dataset class
@@ -314,8 +331,8 @@ def main(hparams):
             tb.add_scalar("Val_Loss", val_loss, epoch)
             tb.add_scalar("Val_Accuracy", val_acc, epoch)
             tb.add_scalar("Val_IOU", val_iou, epoch)
-            tb.add_image("Pred Val Image", torch.transpose(colored_image, 0, 2), epoch)
-            tb.add_image("Target Val Image", torch.transpose(val_image, 0, 2), epoch)
+            #tb.add_image("Pred Val Image", torch.transpose(colored_image, 0, 2), epoch)
+            #tb.add_image("Target Val Image", torch.transpose(val_image, 0, 2), epoch)
             print(f'[INFO-Validation][epoch: {epoch:03d}/iteration: {i :03d}] validation_loss: {val_loss:.6f}, validation_acc: {val_acc:.2f}%, validation_IOU: {val_iou:.2f}%')
             print(f'[INFO-Validation][epoch: {epoch:03d}/iteration: {i :03d}] validation IOU per class in batch: {["{0:0.2f}".format(j) for j in val_iou_per_class]}')
 
@@ -337,19 +354,11 @@ def main(hparams):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-<<<<<<< HEAD
     parser.add_argument("-dr", "--data_root", type=str, default="/media/rauldds/TOSHIBA EXT/MLMI", help="Data root directory")
-    parser.add_argument("-ve", "--validate_every", type=int, default=1, help="Validate after each # of iterations")
-    parser.add_argument("-pe", "--print_every", type=int, default=1, help="print info after each # of epochs")
-    parser.add_argument("-e", "--epochs", type=int, default=300, help="Number of maximum training epochs")
-    parser.add_argument("-bs", "--batch_size", type=int, default=1, help="Batch size")
-=======
-    parser.add_argument("-dr", "--data_root", type=str, default="/Users/luisreyes/Courses/MLMI/Hyperspectral_CT_Recon", help="Data root directory")
     parser.add_argument("-ve", "--validate_every", type=int, default=20, help="Validate after each # of iterations")
     parser.add_argument("-pe", "--print_every", type=int, default=10, help="print info after each # of epochs")
-    parser.add_argument("-e", "--epochs", type=int, default=1000, help="Number of maximum training epochs")
-    parser.add_argument("-bs", "--batch_size", type=int, default=4, help="Batch size")
->>>>>>> 427712af193cc23b9b1d4ba05f786aa3d96923c8
+    parser.add_argument("-e", "--epochs", type=int, default=10, help="Number of maximum training epochs")
+    parser.add_argument("-bs", "--batch_size", type=int, default=1, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
     parser.add_argument("-lr", "--learning_rate", type=float, default=0.0003, help="Learning rate")
     parser.add_argument("-loss", "--loss", type=str, default="ce", help="Loss function")
@@ -370,6 +379,6 @@ if __name__ == "__main__":
     parser.add_argument("-sf", "--split_file", type=bool, default=True, help="use pickle split")
     parser.add_argument("-bsel", "--band_selection", type=str, default=None, help="path to band list")
     parser.add_argument("-ls", "--label_smoothing", type=float, default=0.0, help="how much label smoothing")
-    parser.add_argument("-ero", "--erosion", type=bool, default=True, help="apply erosion as augmention")
+    parser.add_argument("-ero", "--erosion", type=bool, default=False, help="apply erosion as augmention")
     args = parser.parse_args()
     main(args)
