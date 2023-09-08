@@ -1,2 +1,1 @@
-from .music_2d_dataset import MUSIC2DDataset
 from .music_2d_dataset_OneD import MUSIC1DDataset
