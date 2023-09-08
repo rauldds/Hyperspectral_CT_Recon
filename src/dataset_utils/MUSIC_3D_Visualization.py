@@ -7,9 +7,14 @@ from matplotlib.widgets import Slider
 import open3d as o3d
 from collections import Counter
 import os
+from src.DETCTCNN.data.music_2d_labels import MUSIC_2D_PALETTE
 
 idx = 0
 step = 0
+
+def rotate_view(vis):
+    ctr = vis.get_view_control()
+    ctr.rotate(10.0, 0.0)
 
 def pointcloud_converter(data):
     '''Function to convert the segmented slices into a point cloud for 3D visualization'''
@@ -21,7 +26,7 @@ def pointcloud_converter(data):
                 if data[x,y,z]!=0:
                     point = [[x],[y],[z]]
                     points.append(point)
-                    classes.append(data[x,y,z])
+                    classes.append(int(data[x,y,z]))
     points = (np.asarray(points)).squeeze(2)
     return points, classes
 
@@ -29,10 +34,19 @@ def pointcloud_colorizer(classes, num_classes):
     "Function to assign a random color to the different classes that appear in the cloud"
     colors = []
     point_colors = []
-    for i in range (num_classes):
+    '''for i in range (num_classes):
         color = list(np.random.choice(range(256), size=3))
         colors.append(color)
-    colors =(np.asarray(colors))/255
+    colors =(np.asarray(colors))/255'''
+    colors = [[0, 0, 1],
+               [0, 1, 0],
+               [1, 0, 0],
+               [0, 1, 1],
+               [1, 0, 1],
+               [1, 1, 0],
+               [0, 0, 0]]
+    colors = np.asarray(colors, dtype=float)
+    print(colors.shape)
 
     for idx in classes:
         point_colors.append(colors[int(idx)-1])
@@ -86,33 +100,38 @@ while True:
 # END: SAMPLE SELECTION
 
 # 3D Visualization Manual Segmentation
-with h5py.File(DATASET_PATH+ "/"+file+'/manualSegmentation/manualSegmentation.h5', 'r') as f:
+with h5py.File(DATASET_PATH+ "/"+file+'/manualSegmentation/manualSegmentation_global.h5', 'r') as f:
     data = np.array(f['data']['value'], order='F').transpose()
-    
+    data = data.argmax(2)
 points, classes = pointcloud_converter(data)
 
 num_classes = len(Counter(classes).keys())
 
-point_colors = pointcloud_colorizer(classes,num_classes)
+palette = np.array(MUSIC_2D_PALETTE)
+
+point_colors = np.asarray(palette[classes])
 
 #Conversion of point cloud to o3d format
 pcl = o3d.geometry.PointCloud()
 pcl.points = o3d.utility.Vector3dVector(points[:,:])
-pcl.colors = o3d.utility.Vector3dVector(point_colors)
+pcl.colors = o3d.utility.Vector3dVector(point_colors/255)
 
-o3d.visualization.draw_geometries([pcl],
+'''o3d.visualization.draw_geometries([pcl],
                                   zoom=0.664,
                                   front=[-0.4761, -0.4698, -0.7434],
                                   lookat=[int(data.shape[0]/2), 
                                           int(data.shape[1]/2), 
                                           int(data.shape[2]/2)],
                                   up=[0.2304, -0.8825, 0.4101],
+                                  window_name="Manual Segmentation 3D Visualization")'''
+
+o3d.visualization.draw_geometries_with_animation_callback([pcl],rotate_view,
                                   window_name="Manual Segmentation 3D Visualization")
 
 
 #Visualization of Slices
 with h5py.File(DATASET_PATH + "/" + file
-                + '/fullSpectrum/reconstruction/reconstruction.h5', 'r') as f:
+                + '/reducedSpectrum/reconstruction/reconstruction.h5', 'r') as f:
     data = np.array(f['data']['value'], order='F')
 
 
@@ -122,7 +141,7 @@ plt.subplots_adjust(bottom=0.15)
 ax.imshow(data[0][0,:,:])
 
 ax_energy = plt.axes([0.25, 0.05, 0.5, 0.03])
-slider_energy = Slider(ax_energy, 'Sinogram No.', 0, 127, valinit=0, valfmt='%d')
+slider_energy = Slider(ax_energy, 'Sinogram No.', 0, 9, valinit=0, valfmt='%d')
 slider_energy.on_changed(update_energy_level)
 
 ax_step = plt.axes([0.25, 0.1, 0.5, 0.03])

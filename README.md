@@ -26,8 +26,81 @@ Nevertheless here are some important deadlines:
     2. Do direct reconstruction and segmentation using Learning-based approach.
 
 
-# DATASET
+## DATASET
 
-Download the [MUSIC 2D and Music 3D Spectral datasets](http://easi-cil.compute.dtu.dk/index.php/datasets/music/) and set them in the root of the project.
+Download the [MUSIC 2D and Music 3D Spectral datasets](http://easi-cil.compute.dtu.dk/index.php/datasets/music/) and set them in the root of the project. After this, run the following scripts to transform the localized segmentations to our [global mapping](src/DETCTCNN/data/music_2d_labels.py) 
+
+```
+    python src/DETCTCNN/data/dataset_relabeling.py --dataset /path/to/data_root
+```
+
+## Docker Container
+Install [docker](https://docs.docker.com/engine/install/ubuntu/) (if you don't already have it).
+
+After that, go to the root folder of the repo and simply run:
+ ```
+docker build -t mlmi -f Dockerfile ..
+ ```
+Once the docker file has been compiled you can simply run by executing:
+ ```
+ sudo docker run --rm -v <DATASET FOLDER PATH>:/workspace/dataset -v <REPO FOLDER PATH>:/workspace --gpus all -it  mlmi
+  ```
+  From there, you can execute as you would normally do. 
+  
+  To exit the container simply run `exit`.
+
+# Project Structure
+
+This project contains several sub-topics explored during the Praktikum in order to achieve good results with Hyperspectral data.
+
+## Data Preprocessing, Exploration and Dimensionality Reduction
+
+1. The original data contained segmentations that are not appropriate for learning methods. Therefore, data preprocessing files can be found [here](src/DETCTCNN/data)
+2. The full dataset consists of volumes with 128 hyperspectral bands, where we easily identify a curse of dimensionality. Therefore we performed some [data exploration](src/data). In particular, we explore what bands are more informative per class,dimensionality reduction techniques like PCA, and exploring data separation with UMAP.
+3. As PCA was not very useful, we explored Band Selection techniques, such as [OPBS](https://ieeexplore.ieee.org/document/8320544) in [here](src/data/opbs.py) and [BSNet](https://arxiv.org/abs/1904.08269) in [here](./band_selection).
+
+## Segmentation with 2D Convolutions.
+
+Since we are lacking a substantial amount of 3D data (~4 samples with usable segmentations), we implemented a [2D Convolutional network](src/DETCTCNN/model) based off [DECTCNN](https://pubmed.ncbi.nlm.nih.gov/31816095/) but adapted to Hyperspectral data.
+
+### Training
+
+```
+    python src/DETCTCNN/model/train.py 
+```
+
+### Inference
 
 
+#### Slice Inference
+
+```
+    python src/DETCTCNN/model/inference.py 
+```
+
+#### Volume Inference
+```
+    python src/DETCTCNN/inference/3D_inference.py 
+```
+
+## Segmentation with 1D Convolutions.
+
+As we explored into the effects of changing the receptive field of our network to redirect focus on hyperspectral data, we posed the segmentation challenge as a per-pixel classification problem. Thus, we implemented a [1D Convolutional network](src/OneD) for the segmentation problem.
+
+### Training
+
+```
+    python src/OneD/OneDLogReg_train.py
+```
+
+### Inference
+
+
+#### Slice Inference
+```
+    python src/oned/onedlogreg_inference.py
+```
+
+#### Volume Inference
+```
+    python src/OneD/OneDLogReg_3Dinference.py
