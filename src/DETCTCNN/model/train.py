@@ -126,8 +126,8 @@ def main(hparams):
         split_file=hparams.split_file)
     our_sampler = AllClassSampler(data_source=ds_fs,batch_size=hparams.batch_size)
 
-    train_loader = DataLoader(dataset=train_dataset, batch_size=hparams.batch_size,shuffle=True)
-    #train_loader = DataLoader(dataset=train_dataset, batch_size=hparams.batch_size,sampler = our_sampler,drop_last=True)
+    # train_loader = DataLoader(dataset=train_dataset, batch_size=hparams.batch_size,shuffle=True)
+    train_loader = DataLoader(dataset=train_dataset, batch_size=hparams.batch_size,sampler = our_sampler,drop_last=True)
 
     print("Loading Validation Data (And applying dim reduction)...")
     # Define the validation dataset class
@@ -150,26 +150,26 @@ def main(hparams):
         val_dataset.images = list(map(lambda x: standardize(x,mean,std) , val_dataset.images))
         val_dataset.images = list(map(lambda x: normalize(x,min,max) , val_dataset.images))
 
-    val_loader = DataLoader(dataset=val_dataset, batch_size=16,shuffle=True)
+    val_loader = DataLoader(dataset=val_dataset, batch_size=64,shuffle=True)
 
     ################################################################
     #########       End: Configs for patch training     ##########
     ################################################################
 
     # Weights to define how representative is each class during loss estimation
-    weights_dataset = MUSIC2DDataset(
-        path2d=path2d, path3d=path3d,
-        partition="train", 
-        spectrum=hparams.spectrum,
-        transform=None, 
-        full_dataset=hparams.full_dataset, 
-        dim_red = hparams.dim_red,
-        no_dim_red = hparams.no_dim_red,
-        eliminate_empty=False,
-        include_nonthreat=True,
-        oversample_2D=1,
-        split_file=hparams.split_file
-    )
+    # weights_dataset = MUSIC2DDataset(
+    #     path2d=path2d, path3d=path3d,
+    #     partition="train", 
+    #     spectrum=hparams.spectrum,
+    #     transform=None, 
+    #     full_dataset=hparams.full_dataset, 
+    #     dim_red = hparams.dim_red,
+    #     no_dim_red = hparams.no_dim_red,
+    #     eliminate_empty=False,
+    #     include_nonthreat=True,
+    #     oversample_2D=1,
+    #     split_file=hparams.split_file
+    # )
 
     print("Generating Weights...")
     dice_weights = class_weights(dataset=train_dataset, n_classes=len(MUSIC_2D_LABELS))
@@ -181,7 +181,7 @@ def main(hparams):
 
     # Call U-Net model
     print("Creating Model...")
-    model = get_model(input_channels=energy_levels, n_labels=hparams.n_labels, use_bn=True, basic_out_channel=32, depth=hparams.network_depth, dropout=hparams.dropout)
+    model = get_model(input_channels=energy_levels, n_labels=hparams.n_labels, use_bn=False, basic_out_channel=32, depth=hparams.network_depth, dropout=hparams.dropout)
     model.to(device=device)
     
     # Define ADAM optimizer
@@ -330,7 +330,7 @@ def main(hparams):
             val_acc /= len(val_loader)
             val_iou /= len(val_loader)
             val_iou_per_class /= val_class_counts
-            val_loss  = val_loss
+            val_loss = val_loss
             #Scheduler Step
             scheduler.step(val_iou)
 
@@ -351,40 +351,47 @@ def main(hparams):
                     "model_state_dict": model.state_dict(),
                     "optimizer_state_dict": optimizer.state_dict(),
                     "loss": running_loss
-                }, "model_new_6_09_2023_bs_128_depth3_test.pt")
+                }, hparams.model_name + ".pt")
         if epoch == (hparams.epochs-1):
             tb.add_hparams(vars(hparams),
                            {"hparam/train_loss":running_loss, "hparam/train_accuracy":train_accuracy,
                            "hparam/train_IoU":train_iou, "hparam/valid_loss":val_loss,
                            "hparam/val_accuracy":val_acc, "hparam/val_iou":val_iou})
 
+    torch.save({
+        "epoch": hparams.epochs,
+        "model_state_dict": model.state_dict(),
+        "optimizer_state_dict": optimizer.state_dict(),
+    }, hparams.model_name + "_final" + ".pt")
+
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("-dr", "--data_root", type=str, default="/media/rauldds/TOSHIBA EXT/MLMI", help="Data root directory")
+    parser.add_argument("-dr", "--data_root", type=str, default=".", help="Data root directory")
     parser.add_argument("-ve", "--validate_every", type=int, default=20, help="Validate after each # of iterations")
     parser.add_argument("-pe", "--print_every", type=int, default=10, help="print info after each # of epochs")
-    parser.add_argument("-e", "--epochs", type=int, default=10, help="Number of maximum training epochs")
-    parser.add_argument("-bs", "--batch_size", type=int, default=1, help="Batch size")
+    parser.add_argument("-e", "--epochs", type=int, default=4000, help="Number of maximum training epochs")
+    parser.add_argument("-bs", "--batch_size", type=int, default=64, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
-    parser.add_argument("-lr", "--learning_rate", type=float, default=0.0005, help="Learning rate")
+    parser.add_argument("-lr", "--learning_rate", type=float, default=0.0008, help="Learning rate")
     parser.add_argument("-loss", "--loss", type=str, default="focal", help="Loss function")
     parser.add_argument("-n", "--normalize_data", type=bool, default=False, help="Loss function")
-    parser.add_argument("-sp", "--spectrum", type=str, default="reducedSpectrum", help="Spectrum of MUSIC dataset")
+    parser.add_argument("-sp", "--spectrum", type=str, default="fullSpectrum", help="Spectrum of MUSIC dataset")
     parser.add_argument("-ps", "--patch_size", type=int, default=40, help="2D patch size, should be multiple of 128")
     parser.add_argument("-dim_red", "--dim_red", choices=['none', 'pca', 'merge'], default="none", help="Use dimensionality reduction")
     parser.add_argument("-no_dim_red", "--no_dim_red", type=int, default=10, help="Target no. dimensions for dim reduction")
     parser.add_argument("-sample_strategy", "--sample_strategy", choices=['grid', 'label'], default="label", help="Type of sampler to use for patches")
     parser.add_argument("-fd", "--full_dataset", type=bool, default=True, help="Use 2D and 3D datasets or not")
-    parser.add_argument("-dp", "--dropout", type=float, default=0.7, help="Dropout strenght")
+    parser.add_argument("-dp", "--dropout", type=float, default=0.5, help="Dropout strenght")
     parser.add_argument("-nd", "--network_depth", type=float, default=3, help="Depth of Unet style network")
     parser.add_argument("-os2D", "--oversample_2D", type=int, default=1, help="Oversample 2D Samples")
     parser.add_argument("-dre", "--dice_reduc", type=str, default="mean", help="dice weights reduction method")
-    parser.add_argument("-g", "--gamma", type=int, default=3, help="gamma of dice weights")
-    parser.add_argument("-en", "--experiment_name", type=str, default="focal", help="name of the experiment")
+    parser.add_argument("-g", "--gamma", type=int, default=2, help="gamma of dice weights")
+    parser.add_argument("-en", "--experiment_name", type=str, default="sampler", help="name of the experiment")
     parser.add_argument("-l1", "--l1_reg", type=bool, default=False, help="use l1 regularization?")
     parser.add_argument("-sf", "--split_file", type=bool, default=True, help="use pickle split")
     parser.add_argument("-bsel", "--band_selection", type=str, default=None, help="path to band list")
     parser.add_argument("-ls", "--label_smoothing", type=float, default=0.0, help="how much label smoothing")
-    parser.add_argument("-ero", "--erosion", type=bool, default=False, help="apply erosion as augmention")
+    parser.add_argument("-ero", "--erosion", type=bool, default=True, help="apply erosion as augmention")
+    parser.add_argument("-mn", "--model_name", type=str, default="model_new_10_09_2023_focal_bn", help="apply erosion as augmention")
     args = parser.parse_args()
     main(args)
