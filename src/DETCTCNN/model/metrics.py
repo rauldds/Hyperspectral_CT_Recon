@@ -8,8 +8,6 @@ def mIoU_score(y_hat, y, smooth=1e-10, n_classes=16, ignore_index=-1):
         iou_per_class = []
         for cls in range(0, n_classes): #loop per pixel class
             # ignore index from iou since we don't care
-            if cls == ignore_index:
-                continue
             true_class = y_hat == cls
             true_label = y == cls
 
@@ -22,4 +20,8 @@ def mIoU_score(y_hat, y, smooth=1e-10, n_classes=16, ignore_index=-1):
                 iou = (intersect + smooth) / (union +smooth)
                 iou_per_class.append(iou)
         iou_per_class = torch.FloatTensor(iou_per_class)
-        return [iou_per_class ,torch.nanmean(iou_per_class)]
+        iou_per_class_mean = iou_per_class.clone().detach()
+        if ignore_index >= 0 and ignore_index < n_classes:
+            # Ignore class
+            iou_per_class_mean[ignore_index] = torch.nan
+        return [iou_per_class ,torch.nanmean(iou_per_class_mean)]
