@@ -250,7 +250,7 @@ def main(hparams):
             # print statistics
             running_loss += loss.item()
             train_accuracy = calculate_accuracy(pred_tensor=y_hat, target_tensor=y)
-            train_iou_per_class, train_iou = mIoU_score(y_hat.cpu().argmax(1), y.cpu(), n_classes=LABELS_SIZE)
+            train_iou_per_class, train_iou = mIoU_score(y_hat.cpu().argmax(1), y.cpu(), n_classes=LABELS_SIZE, ignore_index=hparams.ignore_index)
             train_iou *= 100
 
         # Print training progress after X amount of epochs
@@ -317,7 +317,7 @@ def main(hparams):
                     # val_image = torch.from_numpy(colored_val_target.astype(np.uint8))
                 val_loss +=loss.item()
                 val_acc += calculate_accuracy(val_pred, val_y)
-                val_iou_per_class_cur, val_iou_cur = mIoU_score(val_pred.cpu().argmax(1), val_y.cpu(), n_classes=LABELS_SIZE)
+                val_iou_per_class_cur, val_iou_cur = mIoU_score(val_pred.cpu().argmax(1), val_y.cpu(), n_classes=LABELS_SIZE, ignore_index=hparams.ignore_index)
                 val_class_counts = val_class_counts + (torch.logical_not(torch.isnan(val_iou_per_class_cur))).long()
                 val_iou += val_iou_cur * 100
                 if val_iou_per_class == None:

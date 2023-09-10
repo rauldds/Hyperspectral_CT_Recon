@@ -1,12 +1,15 @@
 import torch
 
-def mIoU_score(y_hat, y, smooth=1e-10, n_classes=16):
+def mIoU_score(y_hat, y, smooth=1e-10, n_classes=16, ignore_index=-1):
     with torch.no_grad():
         y_hat = y_hat.contiguous().view(-1)
         y = y.contiguous().view(-1)
 
         iou_per_class = []
         for cls in range(0, n_classes): #loop per pixel class
+            # ignore index from iou since we don't care
+            if cls == ignore_index:
+                continue
             true_class = y_hat == cls
             true_label = y == cls
 
