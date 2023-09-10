@@ -181,7 +181,7 @@ def main(hparams):
 
     # Call U-Net model
     print("Creating Model...")
-    model = get_model(input_channels=energy_levels, n_labels=hparams.n_labels, use_bn=False, basic_out_channel=32, depth=hparams.network_depth, dropout=hparams.dropout)
+    model = get_model(input_channels=energy_levels, n_labels=hparams.n_labels, use_bn=True, basic_out_channel=32, depth=hparams.network_depth, dropout=hparams.dropout)
     model.to(device=device)
     
     # Define ADAM optimizer
@@ -197,13 +197,13 @@ def main(hparams):
     loss_criterion = None
     if hparams.loss == "ce":
         # Use Weighted Cross Entropy
-        loss_criterion = torch.nn.CrossEntropyLoss(weight=dice_weights).to(device)
+        loss_criterion = torch.nn.CrossEntropyLoss(weight=dice_weights, ignore_index=hparams.ignore_index).to(device)
     elif hparams.loss == "dice":
         # Use Weighted Dice Loss
         loss_criterion = DiceLossV2().to(device)
     elif hparams.loss == "focal":
         # Use Weighted Dice Loss
-        loss_criterion = FocalLoss(gamma=hparams.gamma, alpha=dice_weights, reduction=hparams.dice_reduc).to(device)
+        loss_criterion = FocalLoss(gamma=hparams.gamma, alpha=dice_weights, reduction=hparams.dice_reduc, ignore_index=hparams.ignore_index).to(device)
     else: # Use both losses
         loss_criterion = CEDiceLoss(weight=dice_weights, ce_weight=0.5).to(device)
 
@@ -372,7 +372,7 @@ if __name__ == "__main__":
     parser.add_argument("-e", "--epochs", type=int, default=4000, help="Number of maximum training epochs")
     parser.add_argument("-bs", "--batch_size", type=int, default=64, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
-    parser.add_argument("-lr", "--learning_rate", type=float, default=0.0008, help="Learning rate")
+    parser.add_argument("-lr", "--learning_rate", type=float, default=0.0005, help="Learning rate")
     parser.add_argument("-loss", "--loss", type=str, default="focal", help="Loss function")
     parser.add_argument("-n", "--normalize_data", type=bool, default=False, help="Loss function")
     parser.add_argument("-sp", "--spectrum", type=str, default="fullSpectrum", help="Spectrum of MUSIC dataset")
@@ -391,7 +391,8 @@ if __name__ == "__main__":
     parser.add_argument("-sf", "--split_file", type=bool, default=True, help="use pickle split")
     parser.add_argument("-bsel", "--band_selection", type=str, default=None, help="path to band list")
     parser.add_argument("-ls", "--label_smoothing", type=float, default=0.0, help="how much label smoothing")
-    parser.add_argument("-ero", "--erosion", type=bool, default=True, help="apply erosion as augmention")
-    parser.add_argument("-mn", "--model_name", type=str, default="model_new_10_09_2023_focal_bn", help="apply erosion as augmention")
+    parser.add_argument("-ero", "--erosion", type=bool, default=False, help="apply erosion as augmention")
+    parser.add_argument("-mn", "--model_name", type=str, default="model_focal", help="apply erosion as augmention")
+    parser.add_argument("-ii", "--ignore_index", type=int, default=MUSIC_2D_LABELS["container"], help="Which Index class to ignore")
     args = parser.parse_args()
     main(args)
