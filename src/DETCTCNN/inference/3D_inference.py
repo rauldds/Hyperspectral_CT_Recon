@@ -56,7 +56,7 @@ def main(args):
     if args.dim_red != "none" or args.band_selection is not None:
         energy_levels = args.no_dim_red
 
-    transform = JointTransform2D(crop=None, p_flip=0.0, color_jitter_params=None, long_mask=True,erosion=True)
+    transform = JointTransform2D(crop=None, p_flip=0.0, color_jitter_params=None, long_mask=True,erosion=args.erosion)
 
     train_dataset = MUSIC2DDataset(
         path2d=path2d, path3d=path3d, 
@@ -86,8 +86,8 @@ def main(args):
         min, max  = calculate_min_max(train_dataset.images)
         dataset.images = list(map(lambda x: normalize(x,min,max) , dataset.images))
 
-    model = get_model(input_channels=energy_levels, n_labels=args.n_labels, use_bn=True, basic_out_channel=64, depth=2, dropout=0.5)
-    checkpoint = torch.load("model.pt", 
+    model = get_model(input_channels=energy_levels, n_labels=args.n_labels, use_bn=True, basic_out_channel=32, depth=3, dropout=0.7)
+    checkpoint = torch.load(args.checkpoint, 
     #model = get_model(input_channels=energy_levels, n_labels=args.n_labels, 
     #                  use_bn=True, basic_out_channel=16, depth=1, dropout=0.5)
     #checkpoint = torch.load("./model_bsnet30merge.pt", 
@@ -163,14 +163,16 @@ def main(args):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("-dr", "--data_root", type=str, default="/media/rauldds/TOSHIBA EXT/MLMI", help="Data root directory")
+    parser.add_argument("-dr", "--data_root", type=str, default=".", help="Data root directory")
     parser.add_argument("-bs", "--batch_size", type=int, default=2, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
     parser.add_argument("-n", "--normalize_data", type=bool, default=False, help="decide if you want to normalize the data")
-    parser.add_argument("-sp", "--spectrum", type=str, default="reducedSpectrum", help="Spectrum of MUSIC dataset")
+    parser.add_argument("-sp", "--spectrum", type=str, default="fullSpectrum", help="Spectrum of MUSIC dataset")
     parser.add_argument("-dim_red", "--dim_red", choices=['none', 'pca', 'merge'], default="none", help="Use dimensionality reduction")
     parser.add_argument("-no_dim_red", "--no_dim_red", type=int, default=10, help="Target no. dimensions for dim reduction")
     parser.add_argument("-bsel", "--band_selection", type=str, default=None, help="path to band list")
+    parser.add_argument("-e", "--erosion", type=bool, default=False, help="path to band list")
+    parser.add_argument("-chk", "--checkpoint", type=str, default="model_ce_no_container.pt", help="path to band list")
     args = parser.parse_args()
 
     main(args)
