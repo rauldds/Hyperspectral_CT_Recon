@@ -14,6 +14,7 @@ hparams_LogReg = {
     'batch_size': 256,
     'log_interval': 500,
     'early_stopping_patience': 10,
+    'num_black_division_factor': 16,
     'initial_epochs_buffer': 2,
     'dataset_path_2d': "/Users/davidg/Projects/Hyperspectral_CT_Recon/MUSIC2D_HDF5",
     'dataset_path_3d': "/Users/davidg/Projects/Hyperspectral_CT_Recon/MUSIC3D_HDF5",
