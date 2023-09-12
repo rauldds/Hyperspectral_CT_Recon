@@ -150,7 +150,7 @@ def main(hparams):
         val_dataset.images = list(map(lambda x: standardize(x,mean,std) , val_dataset.images))
         val_dataset.images = list(map(lambda x: normalize(x,min,max) , val_dataset.images))
 
-    val_loader = DataLoader(dataset=val_dataset, batch_size=64,shuffle=True)
+    val_loader = DataLoader(dataset=val_dataset, batch_size=hparams.batch_size_val, shuffle=True)
 
     ################################################################
     #########       End: Configs for patch training     ##########
@@ -372,6 +372,7 @@ if __name__ == "__main__":
     parser.add_argument("-pe", "--print_every", type=int, default=10, help="print info after each # of epochs")
     parser.add_argument("-e", "--epochs", type=int, default=4000, help="Number of maximum training epochs")
     parser.add_argument("-bs", "--batch_size", type=int, default=256, help="Batch size")
+    parser.add_argument("-bsv", "--batch_size_val", type=int, default=128, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
     parser.add_argument("-lr", "--learning_rate", type=float, default=0.001, help="Learning rate")
     parser.add_argument("-loss", "--loss", type=str, default="ce", help="Loss function")
