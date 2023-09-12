@@ -22,6 +22,7 @@ import io
 import matplotlib.pyplot as plt
 import PIL.Image
 from torchvision.transforms import ToTensor
+torch.manual_seed(0)
 
 # Number of classes in the dataset
 LABELS_SIZE = len(MUSIC_2D_LABELS)
@@ -388,7 +389,7 @@ if __name__ == "__main__":
     parser.add_argument("-os2D", "--oversample_2D", type=int, default=1, help="Oversample 2D Samples")
     parser.add_argument("-dre", "--dice_reduc", type=str, default="mean", help="dice weights reduction method")
     parser.add_argument("-g", "--gamma", type=int, default=2, help="gamma of dice weights")
-    parser.add_argument("-en", "--experiment_name", type=str, default="sampler", help="name of the experiment")
+    parser.add_argument("-en", "--experiment_name", type=str, default="ablation/band_selection", help="name of the experiment")
     parser.add_argument("-l1", "--l1_reg", type=bool, default=False, help="use l1 regularization?")
     parser.add_argument("-sf", "--split_file", type=bool, default=True, help="use pickle split")
     parser.add_argument("-bsel", "--band_selection", type=str, default=None, help="path to band list")
