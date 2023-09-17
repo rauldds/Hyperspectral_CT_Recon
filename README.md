@@ -104,3 +104,12 @@ As we explored into the effects of changing the receptive field of our network t
 #### Volume Inference
 ```
     python src/OneD/OneDLogReg_3Dinference.py
+```
+
+## Band Selection with BSNet
+
+We modify [BSNet](https://github.com/ucalyptus/BS-Nets-Implementation-Pytorch/tree/master) for our particular dataset. To train and run the band selection network, follow the notebook at 
+```
+    jupter notebook
+    band_selection/BSNetConvMusic.ipynb
+```
