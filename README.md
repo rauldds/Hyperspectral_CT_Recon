@@ -1,6 +1,10 @@
 # Hyperspectral_CT_Recon
 Build a prototyping pipeline to test different hyperspectral reconstruction and segmentation approaches leveraging public data and/or simulated data. 
 
+<p align="center">
+  <img src="visualization/Prediction.gif" alt="animated" height="400" />
+</p>
+
 ## Research Papers and Datasets Documentation
 
 In this [Google Sheets spreadsheet](https://docs.google.com/spreadsheets/d/1jJbZ0b8knY3XQfHnoKXy_cuw0ZG5uWUUDZ_9mqVxh0Y/edit#gid=0) you can find the papers and datasets we have found and which we believe might be useful for the project. Feel free to add any information you might have.
