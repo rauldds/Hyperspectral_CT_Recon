@@ -63,6 +63,7 @@ docs/_build/
 
 #CKPTS
 *.pt
+*.pth
 
 # Mesh/Point Cloud files
 *.ply
@@ -73,6 +74,7 @@ runs/
 runs*/
 img/
 checkpoints/
+new_split_checkpoints/
 
 src/OneD/best_model.pth
 src/OneD/pg.py
@@ -82,3 +84,6 @@ src/pytorch-UNet/output/*
 Experiments
 src/DETCTCNN/model/multiple_trainings.py
 src/OneD/experiments_info
+
+# K3D files
+*.html

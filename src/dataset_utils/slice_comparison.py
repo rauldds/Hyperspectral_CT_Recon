@@ -9,7 +9,8 @@ import open3d as o3d
 from collections import Counter
 import os
 import torch
-
+from src.DETCTCNN.data.music_2d_labels import MUSIC_2D_LABELS, MUSIC_2D_PALETTE
+palette = np.array(MUSIC_2D_PALETTE)
 idx = 0
 step = 0
 idx_seg = 0
@@ -118,6 +119,7 @@ with h5py.File(DATASET_PATH + "/" + file
 
 data = torch.from_numpy(data)
 segmentation = torch.from_numpy(segmentation).argmax(1)
+segmentation = np.asarray(palette[segmentation])
 
 fig, ax = plt.subplots()
 plt.title("Slices")

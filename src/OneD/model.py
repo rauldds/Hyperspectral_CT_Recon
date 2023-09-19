@@ -1,6 +1,4 @@
 import torch
-from config import hparams
-
 
 class OneDAutoEncoder(torch.nn.Module):
     def __init__(self, input_channels=128):
