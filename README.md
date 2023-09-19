@@ -1,5 +1,9 @@
-# Hyperspectral_CT_Recon
+# Hyperspectral CT Segmentation and Reconstruction
 Build a prototyping pipeline to test different hyperspectral reconstruction and segmentation approaches leveraging public data and/or simulated data. 
+
+<p align="center">
+  <img src="visualization/Prediction.gif" alt="animated" height="400" />
+</p>
 
 ## Research Papers and Datasets Documentation
 
