@@ -110,6 +110,7 @@ As we explored into the effects of changing the receptive field of our network t
     python src/OneD/OneDLogReg_3Dinference.py
 ```
 
+
 ## Band Selection with BSNet
 
 We modify [BSNet](https://github.com/ucalyptus/BS-Nets-Implementation-Pytorch/tree/master) for our particular dataset. To train and run the band selection network, follow the notebook at 
@@ -117,3 +118,7 @@ We modify [BSNet](https://github.com/ucalyptus/BS-Nets-Implementation-Pytorch/tr
     jupter notebook
     band_selection/BSNetConvMusic.ipynb
 ```
+
+## Band Selection with OPBS
+
+We provide a pickle file with the selected bands using the [OPBS](https://ieeexplore.ieee.org/abstract/document/8320544) method. This file can be found [here](band_selection/band_sel_opbs_10_bands.pkl).
