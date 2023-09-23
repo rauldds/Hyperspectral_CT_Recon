@@ -1,3 +1,6 @@
+"""
+    A script to visualize samples in the MUSIC_2D_HDF5 folder
+"""
 import argparse
 import os
 import sys

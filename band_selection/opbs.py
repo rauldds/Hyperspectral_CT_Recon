@@ -4,16 +4,11 @@ Implementation of OPBS algorithm
 Detail can be found in paper "A Geometry-Based Band Selection
 Approach for Hyperspectral Image Analysis" in Algorithm 2
 """
-
-
 import argparse
 import os
 import pickle
 import numpy as np
 import torch
-# from MEV_SFS import load_gdal_data
-# import scipy.io as scio
-
 from src.DETCTCNN.data.music_2d_dataset import MUSIC2DDataset
 
 
@@ -73,10 +68,6 @@ def save_bands(bands, file_name="selected_bands.pkl"):
         print('Done writing bands into a binary file')
 
 def main(args):
-    # remove_bands = [0, 1, 2, 102, 103, 104, 105, 106, 107, 108, 109, 110,
-    #                 111, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156,
-    #                 157, 158, 159, 160, 161, 162, 163, 164, 216, 217, 218,
-    #                 219]
     path2d = os.path.join(args.dataset, "MUSIC2D_HDF5")
     path3d = os.path.join(args.dataset, "MUSIC3D_HDF5")
     dataset = MUSIC2DDataset(

@@ -1,3 +1,9 @@
+
+"""
+    Simple script to measure the correlation of contiguous 
+    Hyperspectral Bands. Hyperspectral bands tend to be highly
+    correlated
+"""
 import argparse
 import os
 import sys
@@ -5,8 +11,6 @@ import sys
 import h5py
 import numpy as np
 from matplotlib import pyplot as plt
-from matplotlib.widgets import Slider
-# importing required libraries of opencv
 import cv2
 
 def normalize8(I):
