@@ -1,7 +1,7 @@
 from src.DETCTCNN.model.Unet3DMC import Unet3DMC
 from src.DETCTCNN.model.Unet2DMC import Unet2DMC
 
-
+'''Helper function to retrieve the right Unet'''
 def get_model(input_channels=2,with_1conv=True, use_bn=False, depth=3,basic_out_channel=64, n_labels=7, data_dimensions=2, skip_connections=True, dropout=0.5):
     if data_dimensions == 3:
         model = Unet3DMC(input_channels=input_channels, 

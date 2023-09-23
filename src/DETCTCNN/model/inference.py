@@ -14,6 +14,10 @@ INPUT_CHANNELS ={
     "fullSpectrum":128
 }
 
+''' 
+    This script performs inference on a single slice in the dataset 
+'''
+
 def main(args):
 
     path2d = args.data_root + "/MUSIC2D_HDF5"
@@ -24,17 +28,23 @@ def main(args):
                             spectrum=args.spectrum, partition="valid",
                             full_dataset=True,
                             transform=transform)
+                
     if args.normalize_data:
         mean, std = calculate_data_statistics(train_dataset.images)
         dataset.images = list(map(lambda x: standardize(x,mean,std) , dataset.images))
         min, max  = calculate_min_max(train_dataset.images)
         dataset.images = list(map(lambda x: normalize(x,min,max) , dataset.images))
+
     model = get_model(input_channels=INPUT_CHANNELS[args.spectrum], n_labels=args.n_labels,use_bn=True, basic_out_channel=16, depth=2, dropout=0)
     checkpoint = torch.load("model.pt", map_location=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
+
+    # Choose one sample to perform inference in
     img = dataset[args.sample]["image"].unsqueeze(0)
     seg = dataset[args.sample]["segmentation"].unsqueeze(0)
+
+    # Load color palette for inference
     palette = np.array(MUSIC_2D_PALETTE)
     colored_seg = seg.argmax(dim=1).squeeze(0).detach().cpu().numpy()
     colored_seg = palette[colored_seg].astype(np.uint8)

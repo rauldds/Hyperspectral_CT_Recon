@@ -4,7 +4,6 @@ import numpy as np
 
 from src.DETCTCNN.model.layers2D import ConvBlock
 
-
 class EncoderBlock(nn.Module):
 	def __init__(self, channels=(64,128,256)):
 		super().__init__()
@@ -67,8 +66,25 @@ class DecoderBlock(nn.Module):
 			x = self.dec_blocks_2[i](x)
 		return x
 
-# Basic out channel is a multiplier
 class Unet2DMC(nn.Module):
+	'''
+		This code implements the MC-Net network as presented in the paper
+		https://pubmed.ncbi.nlm.nih.gov/31816095/. It is a UNet style network
+		Adapted to work with Hyperspectral CT.
+    	Parameters:
+			input_channels (int): Number of Hyperspectral channels in input
+			with_1conv (bool): Adds 1x1 Convolutions to increase capacity
+			use_bn (bool): activate batch norm
+			depth (int): Depth of UNet Network
+			basic_out_channel (int): multiplier for number of channels
+			in UNet.
+			n_labels(int): Number of target classes
+			skip_connections(int): whether to add or remove skip connections
+			dropout(float): Strength of dropout
+    	Returns:
+			A UNet style network
+	'''
+	
 	def __init__(self,input_channels=2,with_1conv=True, use_bn=False, depth=3, basic_out_channel=64, n_labels=7, skip_connections=True, dropout=0.5):
 		super(Unet2DMC, self).__init__()
 		self.with_1conv=with_1conv

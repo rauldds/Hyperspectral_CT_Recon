@@ -165,29 +165,13 @@ def main(hparams):
     ################################################################
 
     # Weights to define how representative is each class during loss estimation
-    # weights_dataset = MUSIC2DDataset(
-    #     path2d=path2d, path3d=path3d,
-    #     partition="train",
-    #     spectrum=hparams.spectrum,
-    #     transform=None,
-    #     full_dataset=hparams.full_dataset,
-    #     dim_red = hparams.dim_red,
-    #     no_dim_red = hparams.no_dim_red,
-    #     eliminate_empty=False,
-    #     include_nonthreat=True,
-    #     oversample_2D=1,
-    #     split_file=hparams.split_file
-    # )
-
     print("Generating Weights...")
-    # dice_weights = class_weights(dataset=train_dataset, n_classes=len(MUSIC_2D_LABELS))
     dice_weights = class_weights(dataset=ds_fs, n_classes=len(MUSIC_2D_LABELS))
-    # dice_weights = class_weights_sklearn(dataset=weights_dataset, n_classes=len(MUSIC_2D_LABELS))
-
     # Check dice weights used to weight loss function
     dice_weights = dice_weights.float().to(device=device)
     print(dice_weights)
 
+    # Here, we cut the gradients for classes that are easy to learn
     index_to_zero = [1, 2, 3, 7, 8, 9, 10, 13, ]
     dice_weights[index_to_zero] = 0
 
@@ -381,7 +365,7 @@ def main(hparams):
                            {"hparam/train_loss": running_loss, "hparam/train_accuracy": train_accuracy,
                             "hparam/train_IoU": train_iou, "hparam/valid_loss": val_loss,
                             "hparam/val_accuracy": val_acc, "hparam/val_iou": val_iou})
-
+    # Save last epoch
     torch.save({
         "epoch": hparams.epochs,
         "model_state_dict": model.state_dict(),
