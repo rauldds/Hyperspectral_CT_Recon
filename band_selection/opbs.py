@@ -101,7 +101,7 @@ if __name__ == "__main__":
     argParser = argparse.ArgumentParser()
     argParser.add_argument("-d", "--dataset", 
                            help="dataset path", type=str, 
-                           default="./")
+                           default="./../")
     argParser.add_argument("-f", "--file_name", 
                            help="Path to save selected bands", type=str, 
                            default="selected_bands_10.pkl")
