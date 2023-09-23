@@ -60,6 +60,9 @@ This project contains several sub-topics explored during the Praktikum in order 
 ## Visualizatons
 
 Some pre-computed visualizations can be found [here](/visualization/).
+<p align="center">
+  <img src="visualization/SeparabilityCompounds.png" alt="PCA and separation of materials using UMAP" height="300" />
+</p>
 
 ## Data Preprocessing, Exploration and Dimensionality Reduction
 
