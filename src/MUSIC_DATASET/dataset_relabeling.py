@@ -1,3 +1,9 @@
+"""
+    This is a preprocessing script for the MUSIC_2D Dataset.
+    The dataset is not appropriate for learning methods as is,
+    So this script maps the segmentation maps to global pixel values
+    to facilitate DL methods.
+"""
 import argparse
 import h5py
 import numpy as np

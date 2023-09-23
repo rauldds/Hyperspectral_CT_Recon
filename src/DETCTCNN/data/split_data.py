@@ -1,10 +1,15 @@
+'''
+    This file performs a custom split of the MUSIC dataset.
+    The split used in the experiments can be found in the 
+    /splits folder
+'''
+
 from argparse import ArgumentParser
 import pickle
 import torch
 from music_2d_labels import MUSIC_2D_LABELS
 from  src.DETCTCNN.data import music_2d_dataset
 MUSIC2DDataset = music_2d_dataset.MUSIC2DDataset
-from sklearn.model_selection import train_test_split
 import numpy as np
 LABELS_SIZE = len(MUSIC_2D_LABELS)
 SAMPLES_2D=31

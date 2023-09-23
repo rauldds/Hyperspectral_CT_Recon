@@ -1,7 +1,5 @@
-"""Dataset Base Class"""
 
 from abc import ABC, abstractmethod
-from email.mime import image
 import torch.nn.functional as F2
 import os
 import pickle
@@ -15,13 +13,12 @@ from  src.DETCTCNN.data.empty_scans import EMPTY_SCANS
 import torch
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
-import torchio as tio
 from torchvision import transforms as T
 from torchvision.transforms import functional as F
-import json
 import random
 
 
+"""Dataset Base Class"""
 class Dataset(ABC):
     def __init__(self, path2d, path3d, transform, partition, spectrum, full_dataset):
         self.path2d = path2d
@@ -42,6 +39,26 @@ class Dataset(ABC):
 # Data shape is (100,100,1,128). This is 2D data with 128 channels!
 # TODO: Do we want to retrieve sinograms?
 class MUSIC2DDataset(Dataset):
+    '''
+        This class loads the MUSIC dataset as a 2D Task.
+    	Parameters:
+            path2d (str): Path to the MUSIC2D_HDF5 folder
+            path3d (str): Path to the MUSIC3D_HDF5 folder
+            transform (function): transformations to be applied to the samples
+            full_dataset (bool): load MUSIC3D 
+            partition (str): which split to load
+            spectrum (fullSpectrum/reducedSpectrum): load 10 or 128 energy version of dataset
+            dim_red (str): which dimensionality reduction technique to use
+            no_dim_red (int): How many hyperspectral bands to produce
+            eliminate_empty (bool): Whether to eliminate empty scans or not.
+            band_selection (str): Path pointing to pickle file containing selected
+            bands
+            include_nonthreat (bool): Include the NonThreat sample.
+            oversample_2D (int): Applies oversampling to MUSIC2D
+            split_file (str): Path to split file
+    	Returns:
+			The MUSIC dataset 
+	'''
     def __init__(self, *args, path2d=None, path3d=None, 
                 transform=None, full_dataset=False, partition="train", 
                 spectrum="fullSpectrum", dim_red=None, no_dim_red=10, eliminate_empty=True, band_selection = None,
@@ -298,6 +315,7 @@ class JointTransform2D:
         p_random_affine: float, the probability of performing a random affine transform using
             torchvision.transforms.RandomAffine.
         long_mask: bool, if True, returns the mask as LongTensor in label-encoded format.
+        erosion: if True, applies erosion kernel to the samples to smoothen image
     """
     
     def __init__(self, crop=(96, 96), p_flip=0.5, color_jitter_params=(0.1, 0.1, 0.1, 0.1),
@@ -313,10 +331,6 @@ class JointTransform2D:
         self.long_mask = long_mask
 
     def __call__(self, image, mask):
-        # transforming to PIL image
-        # image, mask = F.to_pil_image(image), F.to_pil_image(mask)
-
-        # random crop
 
         if self.crop:
             indices = torch.nonzero((mask.argmax(0) != 0))
@@ -342,15 +356,10 @@ class JointTransform2D:
                 image, mask = F.crop(image, i, j, h, w), F.crop(mask, i, j, h, w)
             
         if self.erosion:
-            #print(image.shape)
-            #print(image.unsqueeze(1).shape)
             kernel = torch.ones(1, 1, 3, 3).to(image.device)
-            #print(kernel.shape)
             kernel[0,0,1,1]=0
             smoothed_img = F2.conv2d(image.unsqueeze(1), kernel, padding=1)
-            #print(smoothed_img.shape)
             image = smoothed_img.squeeze(1)
-            #print(image.shape)
 
         if np.random.rand() < self.p_flip:
             image, mask = F.hflip(image), F.hflip(mask)

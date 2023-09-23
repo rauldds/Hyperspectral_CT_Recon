@@ -1,5 +1,7 @@
-from re import M
-
+'''
+    This file contains the label map for all samples in the MUSIC
+    Dataset.
+'''
 
 MUSIC_2D_LABELS = {
     "unlabelled": 0,

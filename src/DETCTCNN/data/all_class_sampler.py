@@ -1,3 +1,8 @@
+'''
+    This file contains the implementation of the custom sampler
+    used in the project. This sampler helps to balance batches
+    so that batches contain at least one sample of every class
+'''
 import numpy as np
 import random
 import time
@@ -135,8 +140,8 @@ if __name__ == "__main__":
         split_file=False)
     # DATASET FOR SAMPLER (NO TRANSFORM)
     ds_fs = MUSIC2DDataset(
-        path2d="/media/rauldds/TOSHIBA EXT/MLMI/MUSIC2D_HDF5",
-        path3d="/media/rauldds/TOSHIBA EXT/MLMI/MUSIC3D_HDF5",
+        path2d="MUSIC2D_HDF5",
+        path3d="MUSIC3D_HDF5",
         partition="train",
         spectrum="reducedSpectrum",
         transform=None, 

@@ -1,5 +1,9 @@
-import argparse
+"""
+    This script can be used to analyze the samples vs their 
+    Segmentation maps side by side
+"""
 
+import argparse
 import h5py
 import numpy as np
 from matplotlib import pyplot as plt

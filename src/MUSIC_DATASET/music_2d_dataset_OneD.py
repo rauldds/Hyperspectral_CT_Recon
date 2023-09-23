@@ -33,6 +33,26 @@ class Dataset(ABC):
 # Data shape is (100,100,1,128). This is 2D data with 128 channels!
 # TODO: Do we want to retrieve sinograms?
 class MUSIC1DDataset(Dataset):
+    '''
+        This class loads the MUSIC dataset as a 1D Task.
+    	Parameters:
+            path2d (str): Path to the MUSIC2D_HDF5 folder
+            path3d (str): Path to the MUSIC3D_HDF5 folder
+            transform (function): transformations to be applied to the samples
+            full_dataset (bool): load MUSIC3D 
+            partition (str): which split to load
+            spectrum (fullSpectrum/reducedSpectrum): load 10 or 128 energy version of dataset
+            dim_red (str): which dimensionality reduction technique to use
+            no_dim_red (int): How many hyperspectral bands to produce
+            eliminate_empty (bool): Whether to eliminate empty scans or not.
+            band_selection (str): Path pointing to pickle file containing selected
+            bands
+            include_nonthreat (bool): Include the NonThreat sample.
+            oversample_2D (int): Applies oversampling to MUSIC2D
+            split_file (str): Path to split file
+    	Returns:
+			The MUSIC dataset 
+	'''
     def __init__(self, *args, path2d=None, path3d=None,
                 transform=None, full_dataset=False, partition="train",
                 spectrum="fullSpectrum", dim_red=None, no_dim_red=10, eliminate_empty=True, band_selection = None,
