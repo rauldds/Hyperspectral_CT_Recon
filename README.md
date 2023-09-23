@@ -16,9 +16,9 @@ Additionally (if you haven't already), it might also be useful to check the [Pro
 ## TO DOs
 Ideally we have the issues and just update them accordingly to know whose doing what and in which state we currently are.
 Nevertheless here are some important deadlines:
-- [ ] mid-presentation: 06.07.2023. For this date we are supposed to have a baseline script/model as well as the presentation.
-- [ ] final presentation: 21.09.2023
-- [ ] Adapt a method, like Deepsdf, to do Hyperspectral Segmentation and 3D reconstruction
+- [x] mid-presentation: 06.07.2023. For this date we are supposed to have a baseline script/model as well as the presentation.
+- [x] final presentation: 21.09.2023
+- [x] Adapt a method to do Hyperspectral CT Segmentation
 
 ## BASELINE PROPOSAL:
 1. Approach 1:
@@ -56,6 +56,10 @@ Once the docker file has been compiled you can simply run by executing:
 # Project Structure
 
 This project contains several sub-topics explored during the Praktikum in order to achieve good results with Hyperspectral data.
+
+## Visualizatons
+
+Some pre-computed visualizations can be found [here](/visualization/).
 
 ## Data Preprocessing, Exploration and Dimensionality Reduction
 
@@ -116,4 +120,11 @@ We modify [BSNet](https://github.com/ucalyptus/BS-Nets-Implementation-Pytorch/tr
 ```
     jupter notebook
     band_selection/BSNetConvMusic.ipynb
+```
+
+## Band Selection with BSNet
+
+We modify [OPBS](https://ieeexplore.ieee.org/document/8320544) for our particular dataset. To run the band selection process, run the following script
+```
+    python band_selection/opbs.py
 ```
