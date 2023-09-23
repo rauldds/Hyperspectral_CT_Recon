@@ -76,10 +76,7 @@ if __name__ == "__main__":
     parser = ArgumentParser()
 
     parser.add_argument("-dr", "--data_root", type=str, default="./", help="Data root directory")
-    parser.add_argument("-e", "--epochs", type=int, default=3000, help="Number of maximum training epochs")
-    parser.add_argument("-bs", "--batch_size", type=int, default=1, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
-    parser.add_argument("-lr", "--learning_rate", type=int, default=0.00001, help="Learning rate")
     parser.add_argument("-sp", "--spectrum", type=str, default="reducedSpectrum", help="NUmber of slices")
     parser.add_argument("-s", "--sample", type=int, default=15, help="NUmber of slices")
     parser.add_argument("-n", "--normalize_data", type=bool, default=False, help="Loss function")
