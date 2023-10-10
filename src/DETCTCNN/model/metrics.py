@@ -1,5 +1,6 @@
 import torch
 
+'''Returns per class and average IOU scores for classes in the batch'''
 def mIoU_score(y_hat, y, smooth=1e-10, n_classes=16, ignore_index=-1):
     with torch.no_grad():
         y_hat = y_hat.contiguous().view(-1)

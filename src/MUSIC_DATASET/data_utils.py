@@ -1,8 +1,9 @@
 from sklearn.decomposition import PCA
-import matplotlib.pyplot as plt
-import torch
 
-
+"""
+    This script is used by our dataset to perform dimensionality
+    Reduction during data loading.
+"""
 def dimensionality_reduction(matrix, method, orig_shape, target_dims, whiten=True):
     if method == "none" or method is None:
         return matrix

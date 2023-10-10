@@ -1,3 +1,6 @@
+''' 
+    Filtered back projection implementation for CT reconstruction
+'''
 from skimage.transform import iradon
 import numpy as np
 from matplotlib import pyplot as plt

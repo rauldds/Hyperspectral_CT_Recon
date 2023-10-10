@@ -16,6 +16,7 @@ def colorize_mask(mask, palette):
     return new_mask
 
 def image_from_segmentation(prediction,no_classes, palette, device):
+    '''Helper Function to plot a prediction'''
     for i in range(prediction.shape[0]):
         cur_pred = prediction[i].unsqueeze(0)
         palette = np.array(palette)
@@ -32,6 +33,7 @@ def image_from_segmentation(prediction,no_classes, palette, device):
         return colored_image
 
 def plot_segmentation(segmentation, palette):
+    '''Helper Function to plot a segmentation'''
     palette = np.array(palette)
 	# Saves the image, the model output and the results after the post processing
     mask = segmentation.argmax(1).numpy().squeeze()
@@ -55,6 +57,7 @@ def class_frequencies(dataset, n_classes):
     return freqs
 
 def class_weights(dataset, n_classes):
+      '''Calculates loss weights using frequency of classes in data'''
       freqs = class_frequencies(dataset=dataset, n_classes=n_classes)
       med = np.median(freqs[freqs != 0])
       w_s = med/freqs
@@ -80,12 +83,14 @@ def class_weights_sklearn(dataset, n_classes):
     return class_weights
 
 def calculate_data_statistics(dataset):
+    '''Returns mean and std of data'''
     stacked_data = torch.stack(dataset,dim=0)
     mean = stacked_data.mean(dim=(0,2,3))
     std = stacked_data.std(dim=(0,2,3))
     return mean, std
 
 def calculate_min_max(dataset):
+    '''Returns min and max values of data'''
     stacked_data = torch.stack(dataset,dim=0)
     max = stacked_data.amax(dim=(0,2,3))
     min = stacked_data.amin(dim=(0,2,3)) 

@@ -14,6 +14,10 @@ INPUT_CHANNELS ={
     "fullSpectrum":128
 }
 
+''' 
+    This script performs inference on a single slice in the dataset 
+'''
+
 def main(args):
 
     path2d = args.data_root + "/MUSIC2D_HDF5"
@@ -24,17 +28,23 @@ def main(args):
                             spectrum=args.spectrum, partition="valid",
                             full_dataset=True,
                             transform=transform)
+                
     if args.normalize_data:
         mean, std = calculate_data_statistics(train_dataset.images)
         dataset.images = list(map(lambda x: standardize(x,mean,std) , dataset.images))
         min, max  = calculate_min_max(train_dataset.images)
         dataset.images = list(map(lambda x: normalize(x,min,max) , dataset.images))
+
     model = get_model(input_channels=INPUT_CHANNELS[args.spectrum], n_labels=args.n_labels,use_bn=True, basic_out_channel=16, depth=2, dropout=0)
     checkpoint = torch.load("model.pt", map_location=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
+
+    # Choose one sample to perform inference in
     img = dataset[args.sample]["image"].unsqueeze(0)
     seg = dataset[args.sample]["segmentation"].unsqueeze(0)
+
+    # Load color palette for inference
     palette = np.array(MUSIC_2D_PALETTE)
     colored_seg = seg.argmax(dim=1).squeeze(0).detach().cpu().numpy()
     colored_seg = palette[colored_seg].astype(np.uint8)
@@ -66,10 +76,7 @@ if __name__ == "__main__":
     parser = ArgumentParser()
 
     parser.add_argument("-dr", "--data_root", type=str, default="./", help="Data root directory")
-    parser.add_argument("-e", "--epochs", type=int, default=3000, help="Number of maximum training epochs")
-    parser.add_argument("-bs", "--batch_size", type=int, default=1, help="Batch size")
     parser.add_argument("-nl", "--n_labels", type=int, default=LABELS_SIZE, help="Number of labels for final layer")
-    parser.add_argument("-lr", "--learning_rate", type=int, default=0.00001, help="Learning rate")
     parser.add_argument("-sp", "--spectrum", type=str, default="reducedSpectrum", help="NUmber of slices")
     parser.add_argument("-s", "--sample", type=int, default=15, help="NUmber of slices")
     parser.add_argument("-n", "--normalize_data", type=bool, default=False, help="Loss function")

@@ -1,3 +1,7 @@
+''' 
+    This script performs inference on a volume using 2D network
+'''
+
 from argparse import ArgumentParser
 import numpy as np
 from torch.utils.data import DataLoader
